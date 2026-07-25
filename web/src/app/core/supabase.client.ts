@@ -2,6 +2,7 @@ import { InjectionToken } from '@angular/core';
 import { SupabaseClient, createClient } from '@supabase/supabase-js';
 import { environment } from '../../environments/environment';
 
+
 /**
  * A single Supabase client for the whole app. Injected rather than imported so
  * tests can swap it out.
@@ -45,6 +46,21 @@ export function toUserMessage(error: unknown): string {
   }
   if (raw.toLowerCase().includes('invalid login credentials')) {
     return 'Wrong username or password.';
+  }
+
+  // Supabase Auth rejects an address whose domain does not resolve in DNS.
+  // Usernames are mapped onto `usernameEmailDomain`, so this always means that
+  // domain is misconfigured — never that the person typed something wrong.
+  if (
+    (err as { code?: string }).code === 'email_address_invalid' ||
+    /email address .* is invalid/i.test(raw)
+  ) {
+    return (
+      `Sign-up is not configured correctly: Supabase will not accept addresses at ` +
+      `"${environment.usernameEmailDomain}" because that domain does not resolve in DNS. ` +
+      `An administrator needs to set usernameEmailDomain in the app environment to a ` +
+      `domain the organisation owns.`
+    );
   }
   if (raw.toLowerCase().includes('failed to fetch')) {
     return 'Cannot reach the server. Check your connection and try again.';

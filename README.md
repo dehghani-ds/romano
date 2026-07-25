@@ -52,8 +52,13 @@ things need doing by hand once:
 
 1. **Turn off email confirmation.** Authentication → Sign In / Providers →
    Email → disable *Confirm email*. Accounts are identified by username and the
-   internal address (`<username>@users.romano.app`) receives no mail, so a
+   internal address (`<username>@romano.app`) receives no mail, so a
    confirmation link would never arrive.
+
+   The domain in `usernameEmailDomain` (see `web/src/environments/`) **must be
+   one you own that resolves in DNS** — Supabase Auth looks it up and rejects
+   sign-up with `email_address_invalid` otherwise. It never needs to accept
+   mail; it only has to exist.
 
 2. **Create your first admin.** Sign up through the site normally, then run:
 

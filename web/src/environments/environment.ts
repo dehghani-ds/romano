@@ -11,9 +11,15 @@ export const environment = {
   supabasePublishableKey: 'sb_publishable_PlkkHp60MYxi6kQ3yfr8cA_W5ROm9br',
 
   /**
-   * Sign-up collects a username, not an email. We map the username onto a
-   * synthetic address in this domain so Supabase Auth can be used unchanged.
-   * The domain does not need to exist or receive mail.
+   * Sign-up collects a username, not an email. The username is mapped onto an
+   * address in this domain so Supabase Auth can be used unchanged.
+   *
+   * IMPORTANT — this must be a domain you own that RESOLVES IN DNS.
+   * Supabase Auth rejects sign-ups whose email domain has no DNS record with
+   * `email_address_invalid`, so an invented domain does not work. The domain
+   * never has to receive mail (keep "Confirm email" off); it only has to exist.
+   * A dedicated subdomain of a domain you own, with a single A or MX record,
+   * is the tidiest option.
    */
-  usernameEmailDomain: 'users.romano.app',
+  usernameEmailDomain: 'romano.app',
 };

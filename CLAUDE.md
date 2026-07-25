@@ -94,13 +94,25 @@ UI. A rule that lives only in Angular is not enforced.
 ### 4. Auth is username-based
 
 There is no email field. Sign-up collects username + password; the client maps
-the username to a synthetic address `<username>@users.romano.app` so Supabase
-Auth works unchanged. The domain receives no mail, so **"Confirm email" must
-stay off** in the Supabase project — `AuthService.signUp` throws an explicit
-message if it is ever switched back on.
+the username to `<username>@<usernameEmailDomain>` (see
+`web/src/environments/`) so Supabase Auth works unchanged.
+
+Two constraints on that domain, both learned the hard way:
+
+1. **It must resolve in DNS.** Supabase Auth looks the domain up and rejects
+   sign-up with `email_address_invalid` if it does not exist. An invented
+   domain such as `users.romano.app` fails outright. It does not need to accept
+   mail — it only has to have a record.
+2. **"Confirm email" must stay off** in the Supabase project, because nothing
+   ever reads a mailbox there. `AuthService.signUp` throws an explicit message
+   if it is switched back on.
 
 Consequence: there is no email password reset. An admin resets a password from
 the Supabase dashboard. Adding a real optional email column is the upgrade path.
+
+**Testing note:** inserting into `auth.users` with SQL bypasses GoTrue
+completely, including this validation. Sign-up is only genuinely tested by
+calling `auth.signUp()` over HTTP.
 
 ## Working commands
 
