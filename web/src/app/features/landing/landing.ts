@@ -14,23 +14,23 @@ import { Icon } from '../../shared/icon';
   template: `
     <div class="container container--narrow page">
       <section class="hero">
-        <p class="eyebrow">One coffee. Ordered today, ready tomorrow.</p>
-        <h1 class="display">A proper Romano,<br />waiting for you.</h1>
+        <p class="eyebrow">یک قهوه. امروز سفارش، فردا آماده.</p>
+        <h1 class="display">یک رومانوی درست و حسابی،<br />منتظر شماست.</h1>
         <p class="lede muted">
-          Order your cups before you leave. Tomorrow morning they are at your seat — or in the
-          fridge nearest to it.
+          فنجان‌هایتان را پیش از رفتن سفارش بدهید. فردا صبح سر میزتان هستند — یا در نزدیک‌ترین
+          یخچال به شما.
         </p>
 
         <a
           [routerLink]="auth.isSignedIn() ? '/order' : '/signup'"
           class="btn btn--primary btn--lg cta"
         >
-          {{ auth.isSignedIn() ? 'Order for tomorrow' : 'Create your account' }}
+          {{ auth.isSignedIn() ? 'سفارش برای فردا' : 'ساخت حساب کاربری' }}
         </a>
 
         @if (!auth.isSignedIn()) {
           <p class="text-sm muted">
-            Already have an account? <a routerLink="/signin">Sign in</a>
+            قبلاً ثبت‌نام کرده‌اید؟ <a routerLink="/signin">وارد شوید</a>
           </p>
         }
       </section>
@@ -39,23 +39,23 @@ import { Icon } from '../../shared/icon';
         <li class="benefit">
           <span class="benefit__icon"><app-icon name="coffee" [size]="20" /></span>
           <div>
-            <h2 class="benefit__title">Choose your cups</h2>
-            <p class="muted text-sm">One to twenty Romanos, made fresh in the morning.</p>
+            <h2 class="benefit__title">تعداد فنجان را انتخاب کنید</h2>
+            <p class="muted text-sm">از یک تا بیست رومانو، صبح تازه دم می‌شود.</p>
           </div>
         </li>
         <li class="benefit">
           <span class="benefit__icon"><app-icon name="seat" [size]="20" /></span>
           <div>
-            <h2 class="benefit__title">Delivered where you are</h2>
-            <p class="muted text-sm">To your seat, or to the refrigerator closest to it.</p>
+            <h2 class="benefit__title">همان‌جا که هستید تحویل بگیرید</h2>
+            <p class="muted text-sm">سر میز خودتان، یا در نزدیک‌ترین یخچال به آن.</p>
           </div>
         </li>
         <li class="benefit">
           <span class="benefit__icon"><app-icon name="receipt" [size]="20" /></span>
           <div>
-            <h2 class="benefit__title">Pay by receipt</h2>
+            <h2 class="benefit__title">پرداخت با رسید</h2>
             <p class="muted text-sm">
-              Upload your transfer receipt — an admin checks it and starts your order.
+              رسید واریز را بارگذاری کنید — مدیر آن را بررسی و سفارش شما را شروع می‌کند.
             </p>
           </div>
         </li>

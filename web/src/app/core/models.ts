@@ -156,35 +156,35 @@ export const ORDER_STATUS_META: Record<
   { label: string; description: string; icon: string }
 > = {
   pending: {
-    label: 'Pending',
-    description: 'Waiting for an admin to accept it.',
+    label: 'در انتظار',
+    description: 'منتظر تأیید مدیر است.',
     icon: 'clock',
   },
   in_progress: {
-    label: 'In progress',
-    description: 'Accepted — being prepared for tomorrow.',
+    label: 'در حال آماده‌سازی',
+    description: 'تأیید شد — برای فردا آماده می‌شود.',
     icon: 'refresh',
   },
   done: {
-    label: 'Done',
-    description: 'Delivered.',
+    label: 'تحویل شد',
+    description: 'سفارش تحویل داده شد.',
     icon: 'check',
   },
   cancelled: {
-    label: 'Cancelled',
-    description: 'This order will not be delivered.',
+    label: 'لغو شد',
+    description: 'این سفارش تحویل داده نمی‌شود.',
     icon: 'x',
   },
 };
 
 export const PAYMENT_STATUS_META: Record<PaymentStatus, { label: string; hint: string }> = {
   awaiting_receipt: {
-    label: 'No receipt',
-    hint: 'No receipt uploaded yet. You can still add one.',
+    label: 'بدون رسید',
+    hint: 'هنوز رسیدی بارگذاری نشده است. می‌توانید بعداً اضافه کنید.',
   },
-  submitted: { label: 'Receipt uploaded', hint: 'Waiting for an admin to check it.' },
-  verified: { label: 'Payment verified', hint: 'An admin has confirmed the payment.' },
-  rejected: { label: 'Receipt rejected', hint: 'Upload a corrected receipt.' },
+  submitted: { label: 'رسید بارگذاری شد', hint: 'منتظر بررسی مدیر است.' },
+  verified: { label: 'پرداخت تأیید شد', hint: 'مدیر پرداخت را تأیید کرده است.' },
+  rejected: { label: 'رسید رد شد', hint: 'رسید درست را دوباره بارگذاری کنید.' },
 };
 
 export const ORDER_STATUSES: OrderStatus[] = ['pending', 'in_progress', 'done', 'cancelled'];

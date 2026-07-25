@@ -103,7 +103,7 @@ svg {
 
 .skip-link {
   position: absolute;
-  left: var(--space-md);
+  inset-inline-start: var(--space-md);
   top: -100px;
   z-index: var(--z-toast);
   padding: var(--space-sm) var(--space-md);
@@ -149,9 +149,21 @@ svg {
   font-size: var(--fs-sm);
 }
 
+/* Persian digits come from Vazirmatn, which has tabular figures — a Latin
+   monospace stack here would fall back glyph by glyph and look ragged. */
 .numeric {
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Latin identifiers inside Persian text: order numbers, usernames, mobile
+ * numbers. Isolated so bidi reordering cannot scramble `RM-2026-0001`.
+ */
+.code {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: isolate;
 }
 
 .eyebrow {
@@ -284,7 +296,7 @@ svg {
 
 .field__required {
   color: var(--c-danger);
-  margin-left: 2px;
+  margin-inline-start: 2px;
 }
 
 .field__control {
@@ -329,12 +341,13 @@ textarea.field__control {
 select.field__control {
   cursor: pointer;
   appearance: none;
-  padding-right: var(--space-2xl);
+  padding-inline-end: var(--space-2xl);
   background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
     linear-gradient(135deg, currentColor 50%, transparent 50%);
+  /* The caret sits on the inline-end edge — the left one in an RTL page. */
   background-position:
-    calc(100% - 20px) calc(50% + 2px),
-    calc(100% - 15px) calc(50% + 2px);
+    15px calc(50% + 2px),
+    20px calc(50% + 2px);
   background-size: 5px 5px;
   background-repeat: no-repeat;
 }

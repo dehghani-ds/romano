@@ -11,11 +11,11 @@ import { EmptyState } from '../../shared/empty-state';
       <div class="card">
         <app-empty-state
           icon="search"
-          title="Page not found"
-          message="That link does not lead anywhere. It may have moved."
+          title="صفحه پیدا نشد"
+          message="این نشانی به جایی نمی‌رسد. شاید جابه‌جا شده باشد."
         >
           <a routerLink="/" class="btn btn--primary" style="margin-top: var(--space-sm)">
-            Back home
+            بازگشت به صفحهٔ اصلی
           </a>
         </app-empty-state>
       </div>

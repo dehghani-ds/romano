@@ -1,19 +1,32 @@
-/** Shared formatting helpers. Dates are never shown as a bare ISO string. */
+/**
+ * Shared formatting helpers. Dates are never shown as a bare ISO string.
+ *
+ * Everything a person reads is Persian: `fa-IR` gives Persian digits and, for
+ * dates, the Jalali calendar — so `2026-07-26` is shown as `۴ مرداد`, not a
+ * Gregorian date transliterated into Persian.
+ *
+ * The wire format never changes: `delivery_date` is still a Gregorian
+ * `YYYY-MM-DD` string in the database and in every request.
+ */
 
-const WEEKDAY_DATE = new Intl.DateTimeFormat('en-GB', {
-  weekday: 'short',
+const LOCALE = 'fa-IR';
+
+const WEEKDAY_DATE = new Intl.DateTimeFormat(LOCALE, {
+  weekday: 'long',
   day: 'numeric',
-  month: 'short',
+  month: 'long',
 });
 
-const DATE_TIME = new Intl.DateTimeFormat('en-GB', {
+const DATE_TIME = new Intl.DateTimeFormat(LOCALE, {
   day: 'numeric',
-  month: 'short',
+  month: 'long',
   hour: '2-digit',
   minute: '2-digit',
 });
 
-/** `2026-07-26` → `Sun 26 Jul`, with `Tomorrow · ` prefixed when it applies. */
+const NUMBER = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 0 });
+
+/** `2026-07-26` → `یکشنبه ۴ مرداد`, with `فردا · ` prefixed when it applies. */
 export function formatDeliveryDate(isoDate: string): string {
   const date = parseDateOnly(isoDate);
   const label = WEEKDAY_DATE.format(date);
@@ -21,9 +34,9 @@ export function formatDeliveryDate(isoDate: string): string {
   const today = startOfToday();
   const diffDays = Math.round((date.getTime() - today.getTime()) / 86_400_000);
 
-  if (diffDays === 0) return `Today · ${label}`;
-  if (diffDays === 1) return `Tomorrow · ${label}`;
-  if (diffDays === -1) return `Yesterday · ${label}`;
+  if (diffDays === 0) return `امروز · ${label}`;
+  if (diffDays === 1) return `فردا · ${label}`;
+  if (diffDays === -1) return `دیروز · ${label}`;
   return label;
 }
 
@@ -48,14 +61,20 @@ export function toIsoDate(date: Date): string {
   return `${date.getFullYear()}-${month}-${day}`;
 }
 
-/** Amounts are whole units — no fractional rial. */
-export function formatMoney(amount: number, currency = 'IRR'): string {
-  const value = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(amount);
-  return `${value} ${currency}`;
+/** Digits in Persian, e.g. `20` → `۲۰`. */
+export function formatNumber(value: number): string {
+  return NUMBER.format(value);
 }
 
+/** Amounts are whole units — no fractional rial. */
+export function formatMoney(amount: number, currency = 'IRR'): string {
+  const value = NUMBER.format(amount);
+  return currency === 'IRR' ? `${value} ریال` : `${value} ${currency}`;
+}
+
+/** Persian has no plural form for counted nouns: three cups is `۳ فنجان`. */
 export function pluralCups(count: number): string {
-  return count === 1 ? '1 cup' : `${count} cups`;
+  return `${NUMBER.format(count)} فنجان`;
 }
 
 /**

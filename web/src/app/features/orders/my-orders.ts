@@ -14,10 +14,10 @@ import { StatusChip } from '../../shared/status-chip';
   template: `
     <div class="container container--narrow page">
       <div class="head">
-        <h1 class="title">My orders</h1>
+        <h1 class="title">سفارش‌های من</h1>
         <a routerLink="/order" class="btn btn--primary btn--sm">
           <app-icon name="plus" [size]="16" />
-          New order
+          سفارش جدید
         </a>
       </div>
 
@@ -36,11 +36,11 @@ import { StatusChip } from '../../shared/status-chip';
         <div class="card">
           <app-empty-state
             icon="coffee"
-            title="No orders yet"
-            message="Order your first Romano and it will be ready tomorrow morning."
+            title="هنوز سفارشی ندارید"
+            message="اولین رومانوی خود را سفارش بدهید تا فردا صبح آماده باشد."
           >
             <a routerLink="/order" class="btn btn--primary" style="margin-top: var(--space-sm)">
-              Order a Romano
+              سفارش یک رومانو
             </a>
           </app-empty-state>
         </div>
@@ -50,7 +50,7 @@ import { StatusChip } from '../../shared/status-chip';
             <li>
               <a class="order" [routerLink]="['/orders', order.id]">
                 <div class="order__top">
-                  <span class="order__number numeric">{{ order.order_number }}</span>
+                  <span class="order__number code">{{ order.order_number }}</span>
                   <app-status-chip [status]="order.status" />
                 </div>
 
@@ -180,7 +180,7 @@ export class MyOrders {
 
   protected destination(order: OrderDetail): string {
     return order.delivery_target === 'seat'
-      ? (order.seat_code ?? 'Your seat')
-      : (order.refrigerator_label ?? 'Nearest fridge');
+      ? (order.seat_code ?? 'میز شما')
+      : (order.refrigerator_label ?? 'نزدیک‌ترین یخچال');
   }
 }

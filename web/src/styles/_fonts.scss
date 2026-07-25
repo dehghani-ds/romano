@@ -1,0 +1,15 @@
+/* -----------------------------------------------------------------------------
+ * Vazirmatn — the Persian/Arabic face the whole interface is set in.
+ *
+ * Self-hosted from public/fonts rather than a CDN: Google Fonts is unreliable
+ * for users in Iran, and the variable font covers 100–900 in a single 111 KB
+ * request. Licensed under the SIL OFL — see public/fonts/OFL.txt.
+ * -------------------------------------------------------------------------- */
+
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('/fonts/Vazirmatn-Variable.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}

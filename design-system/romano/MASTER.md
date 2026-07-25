@@ -111,19 +111,40 @@ Semantic aliases: `--c-success` `#15803D`, `--c-warning` `#B45309`,
 
 ## 3. Typography
 
-**Pairing:** *Classic Elegant* — Playfair Display (headings) + Inter (body/UI).
-The serif carries the "cafe" warmth in hero + product moments; Inter keeps forms,
-tables and the admin console neutral and legible.
+**Face:** *Vazirmatn* — one Persian/Arabic family across the whole interface.
+The earlier pairing (Playfair Display + Inter) was dropped when the product moved
+to Persian: neither face has Persian glyphs, so every heading would have fallen
+back to a system font. Vazirmatn's weight axis does the work the serif used to —
+display is 600–700 and generously sized, body is 400.
+
+Self-hosted from `web/public/fonts/` rather than a CDN. Google Fonts is
+unreliable for users in Iran, and the variable font is one 111 KB request that
+covers 100–900. Licensed under the SIL OFL (`web/public/fonts/OFL.txt`).
 
 ```css
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap');
+/* web/src/styles/_fonts.scss */
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('/fonts/Vazirmatn-Variable.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-display: swap;
+}
 ```
 
 | Token | Family | Use |
 |-------|--------|-----|
-| `--font-display` | `'Playfair Display', Georgia, serif` | Hero H1, product name, empty-state headline |
-| `--font-sans` | `'Inter', system-ui, -apple-system, sans-serif` | Everything else |
-| `--font-mono` | `ui-monospace, 'SF Mono', Menlo, monospace` | Order codes, prices, counts (tabular) |
+| `--font-display` | `'Vazirmatn', Tahoma, system-ui, sans-serif` | Hero H1, product name, empty-state headline |
+| `--font-sans` | `'Vazirmatn', Tahoma, system-ui, sans-serif` | Everything else |
+| `--font-mono` | `ui-monospace, 'SF Mono', Menlo, monospace` | Latin identifiers only — order numbers, usernames |
+
+Two helper classes carry the numeral rules:
+
+- `.numeric` — `font-variant-numeric: tabular-nums`, no family override. Persian
+  digits come from Vazirmatn; a Latin mono stack here falls back glyph by glyph
+  and looks ragged.
+- `.code` — mono, plus `direction: ltr; unicode-bidi: isolate`. Anything Latin
+  sitting inside Persian text (`RM-2026-0001`, `@username`, `09121234567`) needs
+  the isolate, or bidi reordering scrambles it.
 
 ### Type scale
 
@@ -293,6 +314,26 @@ Sign-out sits apart from primary navigation.
 
 ---
 
+## 6b. Direction (RTL)
+
+The interface is Persian: `<html lang="fa" dir="rtl">`. There is no LTR build
+and no language switcher.
+
+- **Never write a physical direction in CSS.** `margin-inline-start`, not
+  `margin-left`; `inset-inline-end`, not `right`; `text-align: end`, not `right`;
+  `border-inline-start`, not `border-left`; `padding-inline`, not `padding-left/right`.
+  A physical property is a bug even when it looks correct today.
+- **`background-position` has no logical form.** Where a decorative graphic sits
+  on an edge (the `<select>` caret), position it from the left in px and say so
+  in a comment.
+- **Direction-sensitive glyphs flip.** "Back" is `chevron-right`, not
+  `chevron-left`; a progression arrow is `←`, not `→`.
+- **Latin inputs get `dir="ltr"`** — username, mobile, the quantity stepper.
+  Not the password field: its reveal toggle is pinned to the inline-end edge and
+  an LTR input would put the typed text underneath it.
+
+---
+
 ## 7. Accessibility contract (non-negotiable)
 
 - [ ] Body text ≥4.5:1, large text ≥3:1 — in **both** themes.
@@ -310,11 +351,19 @@ Sign-out sits apart from primary navigation.
 
 ## 8. Voice & copy
 
-Warm, short, concrete. Sentence case for everything — no ALL CAPS, no exclamation
-marks. Errors state the cause *and* the fix
-("Mobile number must be 11 digits, e.g. 09121234567").
-Dates are always shown as a weekday + date ("Tomorrow · Sun 26 Jul"), never a bare
-ISO string.
+Persian, warm, short, concrete. No exclamation marks. Errors state the cause
+*and* the fix («شمارهٔ موبایل باید ۱۱ رقم باشد و با ۰۹ شروع شود، مثلاً ۰۹۱۲۱۲۳۴۵۶۷»).
+
+- **Digits are Persian** everywhere a person reads a quantity, price or date —
+  `Intl.NumberFormat('fa-IR')`, via the helpers in `core/format.ts`. Latin digits
+  survive only inside identifiers (order number, username, mobile).
+- **Dates are Jalali**, weekday + date («فردا · یکشنبه ۴ مرداد»), never a bare ISO
+  string. `Intl.DateTimeFormat('fa-IR')` gives the Persian calendar for free. The
+  wire format does not change: `delivery_date` is still Gregorian `YYYY-MM-DD`.
+- **Money is `ریال`** after the amount — the currency comes from the row, not the
+  component.
+- **Error text raised by an RPC is copy**, not a log line. It lands on the screen
+  verbatim, so it is written in Persian in the migration.
 
 ---
 
@@ -339,6 +388,7 @@ ISO string.
 - [ ] No raw hex in any component file (`grep -rE "#[0-9a-fA-F]{6}" src/app` is empty).
 - [ ] `cursor: pointer` on every clickable element.
 - [ ] Light **and** dark verified independently.
+- [ ] No physical direction properties (`grep -rE "(margin|padding|border)-(left|right)|[^-](left|right):" src/app src/styles` is empty).
 - [ ] Checked at 375 / 768 / 1024 / 1440 px.
 - [ ] Reduced-motion verified.
 - [ ] Keyboard-only pass: signup → order → admin transition all reachable.

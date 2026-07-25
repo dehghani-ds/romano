@@ -15,7 +15,7 @@ const MOBILE_PATTERN = /^09\d{9}$/;
   imports: [ReactiveFormsModule, Icon, Spinner],
   template: `
     <div class="container container--narrow page">
-      <h1 class="title">Your profile</h1>
+      <h1 class="title">پروفایل شما</h1>
 
       <section class="card identity">
         <span class="identity__avatar"><app-icon name="user" [size]="22" /></span>
@@ -26,7 +26,7 @@ const MOBILE_PATTERN = /^09\d{9}$/;
         @if (auth.isAdmin()) {
           <span class="badge">
             <app-icon name="shield" [size]="14" />
-            Admin
+            مدیر
           </span>
         }
       </section>
@@ -39,11 +39,11 @@ const MOBILE_PATTERN = /^09\d{9}$/;
       }
 
       <form [formGroup]="form" (ngSubmit)="save()" class="card form" novalidate>
-        <h2 class="section-title">Details</h2>
+        <h2 class="section-title">مشخصات</h2>
 
         <div class="field-grid field-grid--2">
           <div class="field">
-            <label class="field__label" for="firstName">First name</label>
+            <label class="field__label" for="firstName">نام</label>
             <input
               id="firstName"
               class="field__control"
@@ -54,13 +54,13 @@ const MOBILE_PATTERN = /^09\d{9}$/;
             @if (invalid('firstName')) {
               <p class="field__error" role="alert">
                 <app-icon name="alert" [size]="14" />
-                Enter your first name.
+                نام خود را وارد کنید.
               </p>
             }
           </div>
 
           <div class="field">
-            <label class="field__label" for="lastName">Family name</label>
+            <label class="field__label" for="lastName">نام خانوادگی</label>
             <input
               id="lastName"
               class="field__control"
@@ -71,18 +71,19 @@ const MOBILE_PATTERN = /^09\d{9}$/;
             @if (invalid('lastName')) {
               <p class="field__error" role="alert">
                 <app-icon name="alert" [size]="14" />
-                Enter your family name.
+                نام خانوادگی خود را وارد کنید.
               </p>
             }
           </div>
         </div>
 
         <div class="field">
-          <label class="field__label" for="mobile">Mobile number</label>
+          <label class="field__label" for="mobile">شمارهٔ موبایل</label>
           <input
             id="mobile"
             class="field__control"
             type="tel"
+            dir="ltr"
             inputmode="numeric"
             formControlName="mobile"
             autocomplete="tel"
@@ -91,27 +92,27 @@ const MOBILE_PATTERN = /^09\d{9}$/;
           @if (invalid('mobile')) {
             <p class="field__error" role="alert">
               <app-icon name="alert" [size]="14" />
-              Mobile number must be 11 digits starting with 09, for example 09121234567.
+              شمارهٔ موبایل باید ۱۱ رقم باشد و با ۰۹ شروع شود، مثلاً ۰۹۱۲۱۲۳۴۵۶۷.
             </p>
           }
         </div>
 
         <div class="field">
-          <label class="field__label" for="seatId">Your seat</label>
+          <label class="field__label" for="seatId">میز شما</label>
           <select
             id="seatId"
             class="field__control"
             formControlName="seatId"
             [attr.aria-invalid]="invalid('seatId') ? 'true' : null"
           >
-            <option value="">Choose your seat…</option>
+            <option value="">میز خود را انتخاب کنید…</option>
             @for (seat of seats(); track seat.id) {
               <option [value]="seat.id">{{ seat.code }} — {{ seat.label }}</option>
             }
           </select>
           @if (selectedSeat(); as seat) {
             <p class="field__hint">
-              Nearest fridge: {{ seat.refrigerators?.label ?? 'not mapped yet' }}
+              نزدیک‌ترین یخچال: {{ seat.refrigerators?.label ?? 'هنوز مشخص نشده' }}
               @if (seat.refrigerators?.description; as description) {
                 — {{ description }}
               }
@@ -120,25 +121,25 @@ const MOBILE_PATTERN = /^09\d{9}$/;
           @if (invalid('seatId')) {
             <p class="field__error" role="alert">
               <app-icon name="alert" [size]="14" />
-              Choose the seat where you sit.
+              میزی را که پشت آن می‌نشینید انتخاب کنید.
             </p>
           }
         </div>
 
         <button type="submit" class="btn btn--primary" [disabled]="saving() || form.pristine">
           @if (saving()) {
-            <app-spinner [size]="16" label="Saving" />
+            <app-spinner [size]="16" label="در حال ذخیره" />
           } @else {
-            Save changes
+            ذخیرهٔ تغییرات
           }
         </button>
       </form>
 
       <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" class="card form" novalidate>
-        <h2 class="section-title">Change password</h2>
+        <h2 class="section-title">تغییر رمز عبور</h2>
 
         <div class="field">
-          <label class="field__label" for="newPassword">New password</label>
+          <label class="field__label" for="newPassword">رمز عبور جدید</label>
           <input
             id="newPassword"
             class="field__control"
@@ -146,11 +147,11 @@ const MOBILE_PATTERN = /^09\d{9}$/;
             formControlName="newPassword"
             autocomplete="new-password"
           />
-          <p class="field__hint">At least 8 characters.</p>
+          <p class="field__hint">دست‌کم ۸ نویسه.</p>
           @if (passwordForm.controls.newPassword.touched && passwordForm.controls.newPassword.invalid) {
             <p class="field__error" role="alert">
               <app-icon name="alert" [size]="14" />
-              Password must be at least 8 characters.
+              رمز عبور باید دست‌کم ۸ نویسه باشد.
             </p>
           }
         </div>
@@ -161,9 +162,9 @@ const MOBILE_PATTERN = /^09\d{9}$/;
           [disabled]="changingPassword() || passwordForm.invalid"
         >
           @if (changingPassword()) {
-            <app-spinner [size]="16" label="Updating password" />
+            <app-spinner [size]="16" label="در حال به‌روزرسانی رمز" />
           } @else {
-            Update password
+            به‌روزرسانی رمز عبور
           }
         </button>
       </form>
@@ -202,7 +203,7 @@ const MOBILE_PATTERN = /^09\d{9}$/;
       display: inline-flex;
       align-items: center;
       gap: var(--space-xs);
-      margin-left: auto;
+      margin-inline-start: auto;
       padding: 4px 10px;
       border-radius: var(--radius-full);
       background: var(--c-primary-tint);
@@ -309,7 +310,7 @@ export class ProfilePage {
         seat_id: value.seatId,
       });
       this.form.markAsPristine();
-      this.toasts.success('Profile updated.');
+      this.toasts.success('پروفایل به‌روزرسانی شد.');
     } catch (err) {
       this.error.set((err as Error).message);
     } finally {
@@ -327,7 +328,7 @@ export class ProfilePage {
     try {
       await this.auth.changePassword(this.passwordForm.getRawValue().newPassword);
       this.passwordForm.reset();
-      this.toasts.success('Password updated.');
+      this.toasts.success('رمز عبور به‌روزرسانی شد.');
     } catch (err) {
       this.toasts.error((err as Error).message);
     } finally {

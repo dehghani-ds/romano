@@ -12,8 +12,8 @@ import { Spinner } from '../../shared/spinner';
   template: `
     <div class="container container--narrow page">
       <div class="card">
-        <h1 class="title">Welcome back</h1>
-        <p class="muted text-sm intro">Sign in with the username you chose when you signed up.</p>
+        <h1 class="title">خوش آمدید</h1>
+        <p class="muted text-sm intro">با همان نام کاربری که هنگام ثبت‌نام انتخاب کردید وارد شوید.</p>
 
         @if (error(); as message) {
           <div class="alert alert--error" role="alert">
@@ -24,10 +24,11 @@ import { Spinner } from '../../shared/spinner';
 
         <form [formGroup]="form" (ngSubmit)="submit()" class="stack" novalidate>
           <div class="field">
-            <label class="field__label" for="username">Username</label>
+            <label class="field__label" for="username">نام کاربری</label>
             <input
               id="username"
               class="field__control"
+              dir="ltr"
               formControlName="username"
               autocomplete="username"
               autocapitalize="none"
@@ -38,13 +39,13 @@ import { Spinner } from '../../shared/spinner';
             @if (showError('username')) {
               <p class="field__error" id="username-error" role="alert">
                 <app-icon name="alert" [size]="14" />
-                Enter your username.
+                نام کاربری خود را وارد کنید.
               </p>
             }
           </div>
 
           <div class="field">
-            <label class="field__label" for="password">Password</label>
+            <label class="field__label" for="password">رمز عبور</label>
             <div class="password">
               <input
                 id="password"
@@ -59,7 +60,7 @@ import { Spinner } from '../../shared/spinner';
                 type="button"
                 class="password__toggle"
                 (click)="showPassword.set(!showPassword())"
-                [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+                [attr.aria-label]="showPassword() ? 'پنهان کردن رمز عبور' : 'نمایش رمز عبور'"
               >
                 <app-icon [name]="showPassword() ? 'eye-off' : 'eye'" [size]="18" />
               </button>
@@ -67,22 +68,22 @@ import { Spinner } from '../../shared/spinner';
             @if (showError('password')) {
               <p class="field__error" id="password-error" role="alert">
                 <app-icon name="alert" [size]="14" />
-                Enter your password.
+                رمز عبور خود را وارد کنید.
               </p>
             }
           </div>
 
           <button type="submit" class="btn btn--primary btn--block btn--lg" [disabled]="busy()">
             @if (busy()) {
-              <app-spinner [size]="18" label="Signing in" />
+              <app-spinner [size]="18" label="در حال ورود" />
             } @else {
-              Sign in
+              ورود
             }
           </button>
         </form>
 
         <p class="text-sm muted footer">
-          No account yet? <a routerLink="/signup">Create one</a>
+          هنوز حساب ندارید؟ <a routerLink="/signup">یکی بسازید</a>
         </p>
       </div>
     </div>
@@ -108,7 +109,7 @@ import { Spinner } from '../../shared/spinner';
 
     .password__toggle {
       position: absolute;
-      right: 4px;
+      inset-inline-end: 4px;
       top: 50%;
       transform: translateY(-50%);
       display: grid;

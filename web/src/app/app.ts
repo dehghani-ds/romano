@@ -8,7 +8,7 @@ import { ToastHost } from './shared/toast-host';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterOutlet, Header, ToastHost],
   template: `
-    <a class="skip-link" href="#main">Skip to main content</a>
+    <a class="skip-link" href="#main">رفتن به محتوای اصلی</a>
     <app-header />
     <main id="main" tabindex="-1">
       <router-outlet />

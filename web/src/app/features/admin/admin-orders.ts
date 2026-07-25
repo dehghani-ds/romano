@@ -4,6 +4,7 @@ import {
   formatDateTime,
   formatDeliveryDate,
   formatMoney,
+  formatNumber,
   pluralCups,
   tomorrowIso,
 } from '../../core/format';
@@ -36,18 +37,18 @@ type StatusFilter = OrderStatus | 'all';
     <div class="container page">
       <header class="head">
         <div>
-          <h1 class="title">Orders</h1>
+          <h1 class="title">سفارش‌ها</h1>
           <p class="muted text-sm">{{ summary() }}</p>
         </div>
         <button type="button" class="btn btn--secondary btn--sm" (click)="reload()" [disabled]="loading()">
           <app-icon name="refresh" [size]="16" />
-          Refresh
+          تازه‌سازی
         </button>
       </header>
 
       <!-- Filters ------------------------------------------------------- -->
       <section class="filters card">
-        <div class="tabs" role="tablist" aria-label="Filter by status">
+        <div class="tabs" role="tablist" aria-label="فیلتر بر اساس وضعیت">
           @for (option of statusFilters; track option) {
             <button
               type="button"
@@ -65,19 +66,19 @@ type StatusFilter = OrderStatus | 'all';
 
         <div class="filters__row">
           <div class="field">
-            <label class="field__label" for="search">Search</label>
+            <label class="field__label" for="search">جست‌وجو</label>
             <input
               id="search"
               class="field__control"
               type="search"
-              placeholder="Order number, username or name"
+              placeholder="شمارهٔ سفارش، نام کاربری یا نام"
               [ngModel]="search()"
               (ngModelChange)="search.set($event)"
             />
           </div>
 
           <div class="field">
-            <label class="field__label" for="date">Delivery day</label>
+            <label class="field__label" for="date">روز تحویل</label>
             <input
               id="date"
               class="field__control"
@@ -89,10 +90,10 @@ type StatusFilter = OrderStatus | 'all';
 
           <div class="filters__actions">
             <button type="button" class="btn btn--ghost btn--sm" (click)="showTomorrow()">
-              Tomorrow only
+              فقط فردا
             </button>
             <button type="button" class="btn btn--ghost btn--sm" (click)="clearFilters()">
-              Clear
+              پاک کردن
             </button>
           </div>
         </div>
@@ -113,8 +114,8 @@ type StatusFilter = OrderStatus | 'all';
         <div class="card">
           <app-empty-state
             icon="inbox"
-            title="Nothing here"
-            message="No orders match these filters. Try clearing them."
+            title="چیزی اینجا نیست"
+            message="هیچ سفارشی با این فیلترها هم‌خوانی ندارد. آن‌ها را پاک کنید."
           />
         </div>
       } @else {
@@ -122,29 +123,29 @@ type StatusFilter = OrderStatus | 'all';
         <div class="table-wrap card">
           <table class="table">
             <caption class="visually-hidden">
-              All orders, newest first
+              همهٔ سفارش‌ها، تازه‌ترین در بالا
             </caption>
             <thead>
               <tr>
-                <th scope="col">Order</th>
-                <th scope="col">Customer</th>
-                <th scope="col">Delivery</th>
-                <th scope="col">Cups</th>
-                <th scope="col">Payment</th>
-                <th scope="col">Status</th>
-                <th scope="col"><span class="visually-hidden">Actions</span></th>
+                <th scope="col">سفارش</th>
+                <th scope="col">مشتری</th>
+                <th scope="col">تحویل</th>
+                <th scope="col">فنجان</th>
+                <th scope="col">پرداخت</th>
+                <th scope="col">وضعیت</th>
+                <th scope="col"><span class="visually-hidden">کارها</span></th>
               </tr>
             </thead>
             <tbody>
               @for (order of visibleOrders(); track order.id) {
                 <tr>
                   <td>
-                    <span class="numeric strong">{{ order.order_number }}</span>
+                    <span class="code strong">{{ order.order_number }}</span>
                     <span class="muted text-sm block">{{ dateTime(order.created_at) }}</span>
                   </td>
                   <td>
                     <span class="strong">{{ customerName(order) }}</span>
-                    <span class="muted text-sm block">
+                    <span class="muted text-sm block code">
                       &#64;{{ order.customer_username }} · {{ order.customer_mobile }}
                     </span>
                   </td>
@@ -152,18 +153,18 @@ type StatusFilter = OrderStatus | 'all';
                     <span>{{ deliveryDate(order.delivery_date) }}</span>
                     <span class="muted text-sm block">{{ destination(order) }}</span>
                   </td>
-                  <td class="numeric">{{ order.total_cups ?? 0 }}</td>
+                  <td class="numeric">{{ cupsCount(order) }}</td>
                   <td>
                     <span class="text-sm">{{ paymentLabel(order) }}</span>
                     @if (order.receipt_path) {
                       <button type="button" class="link-btn" (click)="viewReceipt(order)">
                         <app-icon name="receipt" [size]="14" />
-                        View receipt
+                        دیدن رسید
                       </button>
                     } @else if (order.payment_status !== 'awaiting_receipt') {
                       <!-- The label already says "no receipt" when none is expected;
                            this only flags the odd case of a reviewed payment with no file. -->
-                      <span class="muted text-sm block">No file on record</span>
+                      <span class="muted text-sm block">فایلی ثبت نشده</span>
                     }
                   </td>
                   <td><app-status-chip [status]="order.status" /></td>
@@ -180,14 +181,14 @@ type StatusFilter = OrderStatus | 'all';
                           [disabled]="busyId() === order.id"
                         >
                           @if (busyId() === order.id) {
-                            <app-spinner [size]="14" label="Updating" />
+                            <app-spinner [size]="14" label="در حال به‌روزرسانی" />
                           } @else {
                             {{ action.label }}
                           }
                         </button>
                       }
                       @if (actionsFor(order.status).length === 0) {
-                        <span class="muted text-sm">No actions</span>
+                        <span class="muted text-sm">کاری نیست</span>
                       }
                     </div>
                   </td>
@@ -201,29 +202,29 @@ type StatusFilter = OrderStatus | 'all';
           @for (order of visibleOrders(); track order.id) {
             <li class="card order-card">
               <div class="order-card__top">
-                <span class="numeric strong">{{ order.order_number }}</span>
+                <span class="code strong">{{ order.order_number }}</span>
                 <app-status-chip [status]="order.status" />
               </div>
 
               <p class="strong">{{ customerName(order) }}</p>
-              <p class="muted text-sm">
+              <p class="muted text-sm code">
                 &#64;{{ order.customer_username }} · {{ order.customer_mobile }}
               </p>
 
               <dl class="order-card__rows">
                 <div>
-                  <dt class="muted text-sm">Delivery</dt>
+                  <dt class="muted text-sm">تحویل</dt>
                   <dd>{{ deliveryDate(order.delivery_date) }} · {{ destination(order) }}</dd>
                 </div>
                 <div>
-                  <dt class="muted text-sm">Order</dt>
+                  <dt class="muted text-sm">سفارش</dt>
                   <dd>
                     {{ cups(order.total_cups ?? 0) }} ·
                     <span class="numeric">{{ money(order.total_amount, order.currency) }}</span>
                   </dd>
                 </div>
                 <div>
-                  <dt class="muted text-sm">Payment</dt>
+                  <dt class="muted text-sm">پرداخت</dt>
                   <dd>{{ paymentLabel(order) }}</dd>
                 </div>
               </dl>
@@ -231,7 +232,7 @@ type StatusFilter = OrderStatus | 'all';
               @if (order.receipt_path) {
                 <button type="button" class="link-btn" (click)="viewReceipt(order)">
                   <app-icon name="receipt" [size]="14" />
-                  View receipt
+                  دیدن رسید
                 </button>
               }
 
@@ -357,7 +358,7 @@ type StatusFilter = OrderStatus | 'all';
       position: sticky;
       top: 0;
       background: var(--c-surface-2);
-      text-align: left;
+      text-align: start;
       font-weight: 600;
       padding: var(--space-md);
       border-bottom: 1px solid var(--c-border);
@@ -468,6 +469,11 @@ export class AdminOrders {
   protected readonly money = formatMoney;
   protected readonly cups = pluralCups;
 
+  /** The table column is a bare count, so it needs Persian digits of its own. */
+  protected cupsCount(order: OrderDetail): string {
+    return formatNumber(order.total_cups ?? 0);
+  }
+
   /**
    * Filtering happens in the browser: the console loads at most 500 orders, so
    * refiltering is instant and does not hit the network on every keystroke.
@@ -502,8 +508,8 @@ export class AdminOrders {
   protected readonly summary = computed(() => {
     const total = this.orders().length;
     const pending = this.orders().filter((o) => o.status === 'pending').length;
-    if (total === 0) return 'No orders yet.';
-    return `${total} order${total === 1 ? '' : 's'} · ${pending} waiting to be accepted`;
+    if (total === 0) return 'هنوز سفارشی نیست.';
+    return `${formatNumber(total)} سفارش · ${formatNumber(pending)} در انتظار تأیید`;
   });
 
   constructor() {
@@ -527,13 +533,15 @@ export class AdminOrders {
   }
 
   protected filterLabel(status: StatusFilter): string {
-    return status === 'all' ? 'All' : ORDER_STATUS_META[status].label;
+    return status === 'all' ? 'همه' : ORDER_STATUS_META[status].label;
   }
 
-  protected countFor(status: StatusFilter): number {
-    return status === 'all'
-      ? this.orders().length
-      : this.orders().filter((o) => o.status === status).length;
+  protected countFor(status: StatusFilter): string {
+    const count =
+      status === 'all'
+        ? this.orders().length
+        : this.orders().filter((o) => o.status === status).length;
+    return formatNumber(count);
   }
 
   protected showTomorrow(): void {
@@ -547,13 +555,13 @@ export class AdminOrders {
   }
 
   protected customerName(order: OrderDetail): string {
-    return `${order.customer_first_name ?? ''} ${order.customer_last_name ?? ''}`.trim() || 'Unknown';
+    return `${order.customer_first_name ?? ''} ${order.customer_last_name ?? ''}`.trim() || 'نامشخص';
   }
 
   protected destination(order: OrderDetail): string {
     return order.delivery_target === 'seat'
-      ? `Seat ${order.seat_code ?? '—'}`
-      : (order.refrigerator_label ?? 'Nearest fridge');
+      ? `میز ${order.seat_code ?? '—'}`
+      : (order.refrigerator_label ?? 'نزدیک‌ترین یخچال');
   }
 
   protected paymentLabel(order: OrderDetail): string {
@@ -565,13 +573,13 @@ export class AdminOrders {
     switch (status) {
       case 'pending':
         return [
-          { status: 'in_progress', label: 'Accept' },
-          { status: 'cancelled', label: 'Cancel' },
+          { status: 'in_progress', label: 'تأیید' },
+          { status: 'cancelled', label: 'لغو' },
         ];
       case 'in_progress':
         return [
-          { status: 'done', label: 'Mark done' },
-          { status: 'cancelled', label: 'Cancel' },
+          { status: 'done', label: 'تحویل شد' },
+          { status: 'cancelled', label: 'لغو' },
         ];
       default:
         return [];
@@ -583,7 +591,7 @@ export class AdminOrders {
 
     if (status === 'cancelled') {
       const reason = prompt(
-        `Cancel order ${order.order_number}?\n\nGive the customer a reason (optional):`,
+        `سفارش ${order.order_number} لغو شود؟\n\nدلیلی برای مشتری بنویسید (اختیاری):`,
       );
       // `null` means the admin dismissed the prompt — do nothing.
       if (reason === null) return;
@@ -594,7 +602,7 @@ export class AdminOrders {
     try {
       await this.ordersService.setStatus(order.id, status, note);
       this.toasts.success(
-        `Order ${order.order_number} is now ${ORDER_STATUS_META[status].label.toLowerCase()}.`,
+        `وضعیت سفارش ${order.order_number} به «${ORDER_STATUS_META[status].label}» تغییر کرد.`,
       );
       await this.reload();
     } catch (err) {
@@ -611,7 +619,7 @@ export class AdminOrders {
     if (url) {
       window.open(url, '_blank', 'noopener');
     } else {
-      this.toasts.error('Could not open that receipt.');
+      this.toasts.error('این رسید باز نشد.');
     }
   }
 }

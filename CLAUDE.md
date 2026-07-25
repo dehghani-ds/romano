@@ -17,6 +17,7 @@ adding latte or espresso is a row in `products`, not a migration.
 | Layer | Choice |
 |-------|--------|
 | Front end | Angular 22, standalone components, **zoneless**, signals |
+| Language | Persian throughout — `<html lang="fa" dir="rtl">`, Vazirmatn, Jalali dates |
 | Styling | Plain SCSS + CSS custom properties (no Tailwind, no component library) |
 | Backend / DB / auth / storage | Supabase (project `mhyizhxbsujhlaahnrjc`, region ap-south-1) |
 | Node | ≥ 22.22.3 (Angular 22 requires it) |
@@ -50,6 +51,14 @@ Non-negotiable:
   `grep -rEn "#[0-9a-fA-F]{6}\b" web/src/app/` — it must return nothing.
 - **No emoji as icons.** All glyphs come from `shared/icon.ts`; add new ones to
   that map, matching the 24px grid and 1.75px stroke.
+- **No physical direction in CSS.** The page is RTL: `margin-inline-start`, not
+  `margin-left`; `inset-inline-end`, not `right`; `text-align: end`, not `right`.
+  Verify with
+  `grep -rEn "(margin|padding|border)-(left|right)|[^-](left|right):" web/src/app web/src/styles`.
+- **Persian copy, Persian digits, Jalali dates.** Anything a person reads goes
+  through `core/format.ts` (`fa-IR`); Latin digits survive only inside
+  identifiers — order number, username, mobile — which need the `.code` class so
+  bidi cannot reorder them.
 - **Status is never colour alone** — always colour + icon + text.
 - Light *and* dark must both be checked; dark is not inferred from light.
 - Touch targets ≥44×44px, visible `:focus-visible`, `prefers-reduced-motion`
@@ -89,7 +98,9 @@ UI. A rule that lives only in Angular is not enforced.
 - Services are `providedIn: 'root'`; the Supabase client comes from the
   `SUPABASE` injection token, never `createClient` at a call site.
 - Errors reaching the user go through `toUserMessage()`, which turns constraint
-  names into sentences. RPC messages are already written for end users.
+  names into Persian sentences. RPC messages are already written for end users,
+  in Persian — a new user-facing message belongs in a migration, not a
+  translation table in the client.
 
 ### 4. Auth is username-based
 

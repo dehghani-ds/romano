@@ -38,5 +38,5 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 })
 export class Spinner {
   readonly size = input(16);
-  readonly label = input('Loading');
+  readonly label = input('در حال بارگذاری');
 }

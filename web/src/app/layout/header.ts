@@ -11,25 +11,25 @@ import { Icon } from '../shared/icon';
   template: `
     <header class="header">
       <div class="container header__inner">
-        <a class="brand" routerLink="/" aria-label="Romano — home">
+        <a class="brand" routerLink="/" aria-label="رومانو — صفحهٔ اصلی">
           <span class="brand__mark"><app-icon name="coffee" [size]="20" /></span>
-          <span class="brand__name">Romano</span>
+          <span class="brand__name">رومانو</span>
         </a>
 
         @if (auth.isSignedIn()) {
-          <nav class="nav" aria-label="Main">
+          <nav class="nav" aria-label="منوی اصلی">
             <a routerLink="/order" routerLinkActive="is-active" class="nav__link">
               <app-icon name="coffee" [size]="18" />
-              <span>Order</span>
+              <span>سفارش</span>
             </a>
             <a routerLink="/orders" routerLinkActive="is-active" class="nav__link">
               <app-icon name="list" [size]="18" />
-              <span>My orders</span>
+              <span>سفارش‌های من</span>
             </a>
             @if (auth.isAdmin()) {
               <a routerLink="/admin" routerLinkActive="is-active" class="nav__link nav__link--admin">
                 <app-icon name="shield" [size]="18" />
-                <span>Admin</span>
+                <span>مدیریت</span>
               </a>
             }
           </nav>
@@ -40,13 +40,13 @@ import { Icon } from '../shared/icon';
             type="button"
             class="icon-btn"
             (click)="theme.toggle()"
-            [attr.aria-label]="theme.theme() === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'"
+            [attr.aria-label]="theme.theme() === 'dark' ? 'تغییر به پوستهٔ روشن' : 'تغییر به پوستهٔ تیره'"
           >
             <app-icon [name]="theme.theme() === 'dark' ? 'sun' : 'moon'" [size]="18" />
           </button>
 
           @if (auth.isSignedIn()) {
-            <a routerLink="/profile" routerLinkActive="is-active" class="icon-btn" aria-label="Your profile">
+            <a routerLink="/profile" routerLinkActive="is-active" class="icon-btn" aria-label="پروفایل شما">
               <app-icon name="user" [size]="18" />
             </a>
             <button
@@ -54,13 +54,13 @@ import { Icon } from '../shared/icon';
               class="icon-btn icon-btn--danger"
               (click)="signOut()"
               [disabled]="signingOut()"
-              aria-label="Sign out"
+              aria-label="خروج از حساب"
             >
               <app-icon name="logout" [size]="18" />
             </button>
           } @else {
-            <a routerLink="/signin" class="btn btn--ghost btn--sm">Sign in</a>
-            <a routerLink="/signup" class="btn btn--primary btn--sm">Sign up</a>
+            <a routerLink="/signin" class="btn btn--ghost btn--sm">ورود</a>
+            <a routerLink="/signup" class="btn btn--primary btn--sm">ثبت‌نام</a>
           }
         </div>
       </div>
@@ -93,7 +93,7 @@ import { Icon } from '../shared/icon';
       font-family: var(--font-display);
       font-size: 1.25rem;
       font-weight: 600;
-      margin-right: auto;
+      margin-inline-end: auto;
     }
 
     .brand__mark {
@@ -153,10 +153,11 @@ import { Icon } from '../shared/icon';
 
     /* The admin area is separated from the customer nav. */
     .nav__link--admin {
-      margin-left: var(--space-sm);
-      border-left: 1px solid var(--c-border);
-      border-radius: 0 var(--radius-md) var(--radius-md) 0;
-      padding-left: var(--space-md);
+      margin-inline-start: var(--space-sm);
+      border-inline-start: 1px solid var(--c-border);
+      border-start-start-radius: 0;
+      border-end-start-radius: 0;
+      padding-inline-start: var(--space-md);
     }
 
     .actions {
@@ -196,7 +197,7 @@ import { Icon } from '../shared/icon';
 
     /* Sign out is spatially separated from the rest — it is destructive. */
     .icon-btn--danger {
-      margin-left: var(--space-xs);
+      margin-inline-start: var(--space-xs);
 
       &:hover:not(:disabled) {
         color: var(--c-danger);

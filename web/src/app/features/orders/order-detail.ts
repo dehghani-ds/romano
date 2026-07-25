@@ -29,8 +29,8 @@ import { StatusChip } from '../../shared/status-chip';
   template: `
     <div class="container container--narrow page">
       <a routerLink="/orders" class="back">
-        <app-icon name="chevron-left" [size]="16" />
-        All orders
+        <app-icon name="chevron-right" [size]="16" />
+        همهٔ سفارش‌ها
       </a>
 
       @if (loading()) {
@@ -46,7 +46,7 @@ import { StatusChip } from '../../shared/status-chip';
       } @else if (order(); as o) {
         <header class="head">
           <div>
-            <p class="numeric muted text-sm">{{ o.order_number }}</p>
+            <p class="code muted text-sm">{{ o.order_number }}</p>
             <h1 class="title">{{ deliveryDate(o.delivery_date) }}</h1>
           </div>
           <app-status-chip [status]="o.status" />
@@ -56,14 +56,14 @@ import { StatusChip } from '../../shared/status-chip';
 
         <!-- What was ordered -------------------------------------------- -->
         <section class="card">
-          <h2 class="section-title">Your order</h2>
+          <h2 class="section-title">سفارش شما</h2>
           <dl class="rows">
             <div class="row">
-              <dt class="muted">Coffee</dt>
-              <dd>{{ o.product_names ?? 'Romano' }} · {{ cups(o.total_cups ?? 0) }}</dd>
+              <dt class="muted">قهوه</dt>
+              <dd>{{ o.product_names ?? 'رومانو' }} · {{ cups(o.total_cups ?? 0) }}</dd>
             </div>
             <div class="row">
-              <dt class="muted">Delivered to</dt>
+              <dt class="muted">محل تحویل</dt>
               <dd>
                 <app-icon [name]="o.delivery_target === 'seat' ? 'seat' : 'fridge'" [size]="15" />
                 {{ destination() }}
@@ -71,18 +71,18 @@ import { StatusChip } from '../../shared/status-chip';
             </div>
             @if (o.zone_name) {
               <div class="row">
-                <dt class="muted">Area</dt>
+                <dt class="muted">محدوده</dt>
                 <dd>{{ o.zone_name }}</dd>
               </div>
             }
             @if (o.notes) {
               <div class="row">
-                <dt class="muted">Your note</dt>
+                <dt class="muted">یادداشت شما</dt>
                 <dd>{{ o.notes }}</dd>
               </div>
             }
             <div class="row row--total">
-              <dt>Total</dt>
+              <dt>مجموع</dt>
               <dd class="numeric">{{ money(o.total_amount, o.currency) }}</dd>
             </div>
           </dl>
@@ -90,7 +90,7 @@ import { StatusChip } from '../../shared/status-chip';
 
         <!-- Payment ------------------------------------------------------ -->
         <section class="card">
-          <h2 class="section-title">Payment</h2>
+          <h2 class="section-title">پرداخت</h2>
 
           @if (o.payment_status; as status) {
             <p class="payment-state">
@@ -114,7 +114,7 @@ import { StatusChip } from '../../shared/status-chip';
             @if (o.receipt_path) {
               <button type="button" class="btn btn--secondary btn--sm" (click)="viewReceipt()">
                 <app-icon name="receipt" [size]="16" />
-                View uploaded receipt
+                دیدن رسید بارگذاری‌شده
               </button>
             }
 
@@ -127,7 +127,7 @@ import { StatusChip } from '../../shared/status-chip';
                 />
                 <app-icon name="upload" [size]="20" />
                 <span>
-                  {{ pendingFile()?.name ?? (o.receipt_path ? 'Replace the receipt' : 'Upload your receipt') }}
+                  {{ pendingFile()?.name ?? (o.receipt_path ? 'جایگزینی رسید' : 'بارگذاری رسید') }}
                 </span>
               </label>
 
@@ -146,9 +146,9 @@ import { StatusChip } from '../../shared/status-chip';
                   [disabled]="uploading()"
                 >
                   @if (uploading()) {
-                    <app-spinner [size]="16" label="Uploading" />
+                    <app-spinner [size]="16" label="در حال بارگذاری" />
                   } @else {
-                    Upload receipt
+                    بارگذاری رسید
                   }
                 </button>
               }
@@ -158,9 +158,9 @@ import { StatusChip } from '../../shared/status-chip';
 
         <!-- Timeline ----------------------------------------------------- -->
         <section class="card">
-          <h2 class="section-title">Progress</h2>
+          <h2 class="section-title">روند سفارش</h2>
           @if (history().length === 0) {
-            <p class="muted text-sm">No updates yet.</p>
+            <p class="muted text-sm">هنوز به‌روزرسانی‌ای نیست.</p>
           } @else {
             <ol class="timeline">
               @for (entry of history(); track entry.id) {
@@ -182,16 +182,16 @@ import { StatusChip } from '../../shared/status-chip';
         @if (o.admin_note) {
           <div class="alert alert--info">
             <app-icon name="alert" [size]="18" />
-            <span><strong>Note from the team:</strong> {{ o.admin_note }}</span>
+            <span><strong>یادداشت تیم:</strong> {{ o.admin_note }}</span>
           </div>
         }
 
         @if (o.status === 'pending') {
           <section class="card danger-zone">
-            <h2 class="section-title">Cancel this order</h2>
+            <h2 class="section-title">لغو این سفارش</h2>
             <p class="muted text-sm">
-              You can withdraw an order while it is still pending. Once an admin accepts it, ask
-              them to cancel it for you.
+              تا وقتی سفارش در انتظار است می‌توانید آن را پس بگیرید. پس از تأیید مدیر، لغو آن را
+              از خودش بخواهید.
             </p>
             <button
               type="button"
@@ -200,9 +200,9 @@ import { StatusChip } from '../../shared/status-chip';
               [disabled]="cancelling()"
             >
               @if (cancelling()) {
-                <app-spinner [size]="16" label="Cancelling" />
+                <app-spinner [size]="16" label="در حال لغو" />
               } @else {
-                Cancel order
+                لغو سفارش
               }
             </button>
           </section>
@@ -277,7 +277,7 @@ import { StatusChip } from '../../shared/status-chip';
     }
 
     .row dd {
-      text-align: right;
+      text-align: end;
       display: inline-flex;
       align-items: center;
       gap: var(--space-xs);
@@ -436,9 +436,9 @@ export class OrderDetailPage {
     const o = this.order();
     if (!o) return '';
     if (o.delivery_target === 'seat') {
-      return o.seat_label ? `${o.seat_code} — ${o.seat_label}` : 'Your seat';
+      return o.seat_label ? `${o.seat_code} — ${o.seat_label}` : 'میز شما';
     }
-    return o.refrigerator_label ?? 'Nearest refrigerator';
+    return o.refrigerator_label ?? 'نزدیک‌ترین یخچال';
   });
 
   constructor() {
@@ -456,7 +456,7 @@ export class OrderDetailPage {
     try {
       const order = await this.ordersService.byId(orderId);
       if (!order) {
-        this.error.set('That order could not be found.');
+        this.error.set('این سفارش پیدا نشد.');
         return;
       }
       this.order.set(order);
@@ -470,7 +470,10 @@ export class OrderDetailPage {
 
   protected statusLabel(entry: OrderStatusHistoryEntry): string {
     const to = ORDER_STATUS_META[entry.to_status].label;
-    return entry.from_status ? `${ORDER_STATUS_META[entry.from_status].label} → ${to}` : `Order placed — ${to}`;
+    // The arrow points the way the eye moves in an RTL page: from → to.
+    return entry.from_status
+      ? `${ORDER_STATUS_META[entry.from_status].label} ← ${to}`
+      : `سفارش ثبت شد — ${to}`;
   }
 
   protected onFileSelected(event: Event): void {
@@ -479,7 +482,7 @@ export class OrderDetailPage {
     this.uploadError.set(null);
 
     if (file && file.size > 5 * 1024 * 1024) {
-      this.uploadError.set('That file is larger than 5 MB. Choose a smaller one.');
+      this.uploadError.set('حجم این فایل بیشتر از ۵ مگابایت است. فایل کوچک‌تری انتخاب کنید.');
       this.pendingFile.set(null);
       input.value = '';
       return;
@@ -500,7 +503,7 @@ export class OrderDetailPage {
     try {
       await this.ordersService.uploadReceipt(userId, order.id, file);
       this.pendingFile.set(null);
-      this.toasts.success('Receipt uploaded. An admin will check it shortly.');
+      this.toasts.success('رسید بارگذاری شد. مدیر به‌زودی آن را بررسی می‌کند.');
       await this.load();
     } catch (err) {
       this.uploadError.set((err as Error).message);
@@ -517,7 +520,7 @@ export class OrderDetailPage {
     if (url) {
       window.open(url, '_blank', 'noopener');
     } else {
-      this.toasts.error('Could not open the receipt. Try again in a moment.');
+      this.toasts.error('رسید باز نشد. چند لحظه بعد دوباره تلاش کنید.');
     }
   }
 
@@ -526,14 +529,14 @@ export class OrderDetailPage {
     if (!order) return;
 
     const confirmed = confirm(
-      `Cancel order ${order.order_number}? This cannot be undone.`,
+      `سفارش ${order.order_number} لغو شود؟ این کار برگشت‌پذیر نیست.`,
     );
     if (!confirmed) return;
 
     this.cancelling.set(true);
     try {
       await this.ordersService.cancelMine(order.id);
-      this.toasts.success('Order cancelled.');
+      this.toasts.success('سفارش لغو شد.');
       await this.load();
     } catch (err) {
       this.toasts.error((err as Error).message);

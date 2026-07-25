@@ -27,25 +27,38 @@ export const SUPABASE = new InjectionToken<SupabaseClient>('SUPABASE_CLIENT', {
  * passed through; constraint violations are translated by name.
  */
 export function toUserMessage(error: unknown): string {
-  if (!error) return 'Something went wrong. Please try again.';
+  if (!error) return 'مشکلی پیش آمد. دوباره تلاش کنید.';
 
   const err = error as { message?: string; code?: string; details?: string };
   const raw = err.message ?? '';
 
   if (raw.includes('profiles_username_key')) {
-    return 'That username is already taken. Pick another one.';
+    return 'این نام کاربری قبلاً گرفته شده است. یکی دیگر انتخاب کنید.';
   }
   if (raw.includes('profiles_mobile_key')) {
-    return 'That mobile number is already registered.';
+    return 'این شمارهٔ موبایل قبلاً ثبت شده است.';
   }
   if (raw.includes('profiles_username_check')) {
-    return 'Username must be 3–30 characters, using lowercase letters, numbers or underscores.';
+    return 'نام کاربری باید ۳ تا ۳۰ نویسه باشد: حروف کوچک انگلیسی، عدد یا زیرخط.';
   }
   if (raw.includes('profiles_mobile_check')) {
-    return 'Enter a valid mobile number, for example 09121234567.';
+    return 'یک شمارهٔ موبایل معتبر وارد کنید، مثلاً ۰۹۱۲۱۲۳۴۵۶۷.';
   }
   if (raw.toLowerCase().includes('invalid login credentials')) {
-    return 'Wrong username or password.';
+    return 'نام کاربری یا رمز عبور نادرست است.';
+  }
+
+  // Sign-up creates the account, but GoTrue withholds the session while
+  // "Confirm email" is on. Nothing ever reads the synthetic mailbox, so this
+  // is always a project misconfiguration — never something the person typed.
+  if (
+    (err as { code?: string }).code === 'email_not_confirmed' ||
+    raw.toLowerCase().includes('email not confirmed')
+  ) {
+    return (
+      'این حساب هنوز فعال نشده است. مدیر باید گزینهٔ «Confirm email» را در پروژهٔ ' +
+      'Supabase خاموش کند — ورود با نام کاربری به تأیید ایمیل نیازی ندارد.'
+    );
   }
 
   // Supabase Auth rejects an address whose domain does not resolve in DNS.
@@ -56,16 +69,17 @@ export function toUserMessage(error: unknown): string {
     /email address .* is invalid/i.test(raw)
   ) {
     return (
-      `Sign-up is not configured correctly: Supabase will not accept addresses at ` +
-      `"${environment.usernameEmailDomain}" because that domain does not resolve in DNS. ` +
-      `An administrator needs to set usernameEmailDomain in the app environment to a ` +
-      `domain the organisation owns.`
+      `ثبت‌نام درست پیکربندی نشده است: Supabase نشانی‌های دامنهٔ ` +
+      `«${environment.usernameEmailDomain}» را نمی‌پذیرد، چون این دامنه در DNS ثبت نشده. ` +
+      `مدیر باید usernameEmailDomain را در تنظیمات برنامه روی دامنه‌ای بگذارد که ` +
+      `سازمان مالک آن است.`
     );
   }
   if (raw.toLowerCase().includes('failed to fetch')) {
-    return 'Cannot reach the server. Check your connection and try again.';
+    return 'ارتباط با سرور برقرار نشد. اتصال خود را بررسی کنید و دوباره تلاش کنید.';
   }
 
-  // Anything raised by our own RPCs is already user-facing.
-  return raw || 'Something went wrong. Please try again.';
+  // Anything raised by our own RPCs is already user-facing, and already Persian
+  // — see supabase/migrations/*_persian_messages.sql.
+  return raw || 'مشکلی پیش آمد. دوباره تلاش کنید.';
 }

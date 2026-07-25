@@ -117,9 +117,9 @@ export class AuthService {
     // "Confirm email" is still switched on for the project.
     if (!data.session) {
       throw new Error(
-        'Your account was created but could not be signed in automatically. ' +
-          'An administrator needs to turn off "Confirm email" in the Supabase ' +
-          'project (Authentication → Sign In / Providers → Email).',
+        'حساب شما ساخته شد اما ورود خودکار انجام نشد. مدیر باید گزینهٔ ' +
+          '«Confirm email» را در پروژهٔ Supabase خاموش کند ' +
+          '(Authentication → Sign In / Providers → Email).',
       );
     }
 
@@ -150,7 +150,7 @@ export class AuthService {
     seat_id: string;
   }): Promise<void> {
     const userId = this._session()?.user.id;
-    if (!userId) throw new Error('You are not signed in.');
+    if (!userId) throw new Error('شما وارد حساب نشده‌اید.');
 
     const { error } = await this.supabase.from('profiles').update(patch).eq('id', userId);
     if (error) throw new Error(toUserMessage(error));

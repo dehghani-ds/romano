@@ -52,8 +52,11 @@
   --c-status-cancelled-bg: #fee2e2;
 
   /* --- Type -------------------------------------------------------------- */
-  --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
-  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Vazirmatn carries both roles: a Persian interface has no use for a Latin
+     serif, and the variable weight axis gives display its own presence. */
+  --font-display: 'Vazirmatn', 'Tahoma', system-ui, sans-serif;
+  --font-sans: 'Vazirmatn', 'Tahoma', system-ui, sans-serif;
+  /* Order numbers and receipt references stay Latin, so they stay monospaced. */
   --font-mono: ui-monospace, 'SF Mono', 'Menlo', 'Consolas', monospace;
 
   --fs-display: clamp(2rem, 1.4rem + 2.6vw, 2.75rem);

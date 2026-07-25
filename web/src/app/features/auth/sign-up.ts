@@ -31,9 +31,9 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
   template: `
     <div class="container container--narrow page">
       <div class="card">
-        <h1 class="title">Create your account</h1>
+        <h1 class="title">ساخت حساب کاربری</h1>
         <p class="muted text-sm intro">
-          We need your name, a username and where you sit — so we know where the coffee goes.
+          نام، نام کاربری و محل نشستن شما را می‌خواهیم — تا بدانیم قهوه را کجا برسانیم.
         </p>
 
         @if (error(); as message) {
@@ -45,11 +45,11 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
 
         <form [formGroup]="form" (ngSubmit)="submit()" class="stack" novalidate>
           <fieldset class="group">
-            <legend class="eyebrow">Your name</legend>
+            <legend class="eyebrow">نام شما</legend>
             <div class="field-grid field-grid--2">
               <div class="field">
                 <label class="field__label" for="firstName">
-                  First name<span class="field__required" aria-hidden="true">*</span>
+                  نام<span class="field__required" aria-hidden="true">*</span>
                 </label>
                 <input
                   id="firstName"
@@ -61,14 +61,14 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
                 @if (invalid('firstName')) {
                   <p class="field__error" role="alert">
                     <app-icon name="alert" [size]="14" />
-                    Enter your first name.
+                    نام خود را وارد کنید.
                   </p>
                 }
               </div>
 
               <div class="field">
                 <label class="field__label" for="lastName">
-                  Family name<span class="field__required" aria-hidden="true">*</span>
+                  نام خانوادگی<span class="field__required" aria-hidden="true">*</span>
                 </label>
                 <input
                   id="lastName"
@@ -80,7 +80,7 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
                 @if (invalid('lastName')) {
                   <p class="field__error" role="alert">
                     <app-icon name="alert" [size]="14" />
-                    Enter your family name.
+                    نام خانوادگی خود را وارد کنید.
                   </p>
                 }
               </div>
@@ -88,34 +88,35 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
           </fieldset>
 
           <fieldset class="group">
-            <legend class="eyebrow">How we reach you</legend>
+            <legend class="eyebrow">راه ارتباطی</legend>
 
             <div class="field">
               <label class="field__label" for="mobile">
-                Mobile number<span class="field__required" aria-hidden="true">*</span>
+                شمارهٔ موبایل<span class="field__required" aria-hidden="true">*</span>
               </label>
               <input
                 id="mobile"
                 class="field__control"
                 type="tel"
+                dir="ltr"
                 inputmode="numeric"
                 formControlName="mobile"
                 autocomplete="tel"
                 placeholder="09121234567"
                 [attr.aria-invalid]="invalid('mobile') ? 'true' : null"
               />
-              <p class="field__hint">We only use this if there is a problem with your order.</p>
+              <p class="field__hint">فقط اگر مشکلی در سفارش پیش بیاید با شما تماس می‌گیریم.</p>
               @if (invalid('mobile')) {
                 <p class="field__error" role="alert">
                   <app-icon name="alert" [size]="14" />
-                  Mobile number must be 11 digits starting with 09, for example 09121234567.
+                  شمارهٔ موبایل باید ۱۱ رقم باشد و با ۰۹ شروع شود، مثلاً ۰۹۱۲۱۲۳۴۵۶۷.
                 </p>
               }
             </div>
 
             <div class="field">
               <label class="field__label" for="seatId">
-                Your seat<span class="field__required" aria-hidden="true">*</span>
+                میز شما<span class="field__required" aria-hidden="true">*</span>
               </label>
               <select
                 id="seatId"
@@ -123,43 +124,44 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
                 formControlName="seatId"
                 [attr.aria-invalid]="invalid('seatId') ? 'true' : null"
               >
-                <option value="">Choose your seat…</option>
+                <option value="">میز خود را انتخاب کنید…</option>
                 @for (seat of seats(); track seat.id) {
                   <option [value]="seat.id">{{ seat.code }} — {{ seat.label }}</option>
                 }
               </select>
               @if (selectedSeat(); as seat) {
                 <p class="field__hint">
-                  Nearest fridge:
-                  {{ seat.refrigerators?.label ?? 'not mapped yet' }}
+                  نزدیک‌ترین یخچال:
+                  {{ seat.refrigerators?.label ?? 'هنوز مشخص نشده' }}
                   @if (seat.refrigerators?.description; as description) {
                     — {{ description }}
                   }
                 </p>
               } @else {
                 <p class="field__hint">
-                  This decides where your coffee is delivered. You can change it later.
+                  محل تحویل قهوه از روی همین انتخاب مشخص می‌شود. بعداً هم می‌توانید تغییرش دهید.
                 </p>
               }
               @if (invalid('seatId')) {
                 <p class="field__error" role="alert">
                   <app-icon name="alert" [size]="14" />
-                  Choose the seat where you sit.
+                  میزی را که پشت آن می‌نشینید انتخاب کنید.
                 </p>
               }
             </div>
           </fieldset>
 
           <fieldset class="group">
-            <legend class="eyebrow">Sign-in details</legend>
+            <legend class="eyebrow">اطلاعات ورود</legend>
 
             <div class="field">
               <label class="field__label" for="username">
-                Username<span class="field__required" aria-hidden="true">*</span>
+                نام کاربری<span class="field__required" aria-hidden="true">*</span>
               </label>
               <input
                 id="username"
                 class="field__control"
+                dir="ltr"
                 formControlName="username"
                 autocomplete="username"
                 autocapitalize="none"
@@ -167,19 +169,19 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
                 [attr.aria-invalid]="invalid('username') ? 'true' : null"
               />
               <p class="field__hint">
-                3–30 characters: lowercase letters, numbers and underscores.
+                ۳ تا ۳۰ نویسه: حروف کوچک انگلیسی، عدد و زیرخط.
               </p>
               @if (invalid('username')) {
                 <p class="field__error" role="alert">
                   <app-icon name="alert" [size]="14" />
-                  Use 3–30 lowercase letters, numbers or underscores — no spaces.
+                  ۳ تا ۳۰ نویسه از حروف کوچک انگلیسی، عدد یا زیرخط بنویسید — بدون فاصله.
                 </p>
               }
             </div>
 
             <div class="field">
               <label class="field__label" for="password">
-                Password<span class="field__required" aria-hidden="true">*</span>
+                رمز عبور<span class="field__required" aria-hidden="true">*</span>
               </label>
               <div class="password">
                 <input
@@ -194,23 +196,23 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
                   type="button"
                   class="password__toggle"
                   (click)="showPassword.set(!showPassword())"
-                  [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+                  [attr.aria-label]="showPassword() ? 'پنهان کردن رمز عبور' : 'نمایش رمز عبور'"
                 >
                   <app-icon [name]="showPassword() ? 'eye-off' : 'eye'" [size]="18" />
                 </button>
               </div>
-              <p class="field__hint">At least 8 characters.</p>
+              <p class="field__hint">دست‌کم ۸ نویسه.</p>
               @if (invalid('password')) {
                 <p class="field__error" role="alert">
                   <app-icon name="alert" [size]="14" />
-                  Password must be at least 8 characters.
+                  رمز عبور باید دست‌کم ۸ نویسه باشد.
                 </p>
               }
             </div>
 
             <div class="field">
               <label class="field__label" for="confirmPassword">
-                Confirm password<span class="field__required" aria-hidden="true">*</span>
+                تکرار رمز عبور<span class="field__required" aria-hidden="true">*</span>
               </label>
               <input
                 id="confirmPassword"
@@ -223,7 +225,7 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
               @if (mismatch()) {
                 <p class="field__error" role="alert">
                   <app-icon name="alert" [size]="14" />
-                  The two passwords do not match.
+                  دو رمز عبور یکسان نیستند.
                 </p>
               }
             </div>
@@ -231,15 +233,15 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
 
           <button type="submit" class="btn btn--primary btn--block btn--lg" [disabled]="busy()">
             @if (busy()) {
-              <app-spinner [size]="18" label="Creating your account" />
+              <app-spinner [size]="18" label="در حال ساخت حساب" />
             } @else {
-              Create account
+              ساخت حساب
             }
           </button>
         </form>
 
         <p class="text-sm muted footer">
-          Already registered? <a routerLink="/signin">Sign in</a>
+          قبلاً ثبت‌نام کرده‌اید؟ <a routerLink="/signin">وارد شوید</a>
         </p>
       </div>
     </div>
@@ -285,7 +287,7 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
 
     .password__toggle {
       position: absolute;
-      right: 4px;
+      inset-inline-end: 4px;
       top: 50%;
       transform: translateY(-50%);
       display: grid;
@@ -386,7 +388,7 @@ export class SignUp {
         seatId: value.seatId,
       });
 
-      this.toasts.success('Account created. Welcome to Romano.');
+      this.toasts.success('حساب شما ساخته شد. به رومانو خوش آمدید.');
       await this.router.navigate(['/order']);
     } catch (err) {
       this.error.set((err as Error).message);

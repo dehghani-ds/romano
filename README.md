@@ -15,6 +15,7 @@ and moves it through *in progress* to *done*.
 | | |
 |---|---|
 | **Front end** | Angular 22 · standalone · zoneless · signals · SCSS design tokens |
+| **Language** | Persian (`fa`), right-to-left, Vazirmatn, Jalali dates, Persian digits |
 | **Back end** | Supabase — Postgres, Auth, Storage, row level security |
 | **Design** | Generated with the [`ui-ux-pro-max`](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) skill, recorded in `design-system/romano/MASTER.md` |
 
@@ -47,7 +48,7 @@ npm run build      # output in web/dist/web
 
 ## First-time Supabase setup
 
-The schema, policies and seed data are already applied to the project. Two
+The schema, policies and seed data are already applied to the project. Three
 things need doing by hand once:
 
 1. **Turn off email confirmation.** Authentication → Sign In / Providers →
@@ -67,6 +68,12 @@ things need doing by hand once:
    ```
 
    Sign out and back in, and the **Admin** tab appears.
+
+3. **Apply the Persian migration.** `supabase/migrations/20260725210000_persian_messages_and_labels.sql`
+   translates the text the database owns — the messages the RPCs raise onto the
+   screen, and the seeded zone, fridge, seat and product labels. Until it is
+   applied the interface is Persian but its error messages and seat picker are
+   not.
 
 ## How it works
 

@@ -16,7 +16,7 @@ import { Icon } from './icon';
             [size]="18"
           />
           <span class="toast__message">{{ toast.message }}</span>
-          <button type="button" class="toast__close" (click)="toasts.dismiss(toast.id)" aria-label="Dismiss">
+          <button type="button" class="toast__close" (click)="toasts.dismiss(toast.id)" aria-label="بستن">
             <app-icon name="x" [size]="16" />
           </button>
         </div>
@@ -27,8 +27,7 @@ import { Icon } from './icon';
     .host {
       position: fixed;
       top: var(--space-md);
-      right: var(--space-md);
-      left: var(--space-md);
+      inset-inline: var(--space-md);
       z-index: var(--z-toast);
       display: flex;
       flex-direction: column;
@@ -38,7 +37,7 @@ import { Icon } from './icon';
 
     @media (min-width: 768px) {
       .host {
-        left: auto;
+        inset-inline-start: auto;
         max-width: 380px;
       }
     }

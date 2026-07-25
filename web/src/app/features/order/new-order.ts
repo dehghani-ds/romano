@@ -2,7 +2,13 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { CatalogService } from '../../core/catalog.service';
-import { formatDeliveryDate, formatMoney, pluralCups, tomorrowIso } from '../../core/format';
+import {
+  formatDeliveryDate,
+  formatMoney,
+  formatNumber,
+  pluralCups,
+  tomorrowIso,
+} from '../../core/format';
 import { DeliveryTarget, Product } from '../../core/models';
 import { OrdersService } from '../../core/orders.service';
 import { ToastService } from '../../core/toast.service';
@@ -25,7 +31,7 @@ const MIN_CUPS = 1;
   imports: [RouterLink, Icon, Spinner],
   template: `
     <div class="container container--narrow page">
-      <h1 class="title">Order for tomorrow</h1>
+      <h1 class="title">سفارش برای فردا</h1>
       <p class="muted text-sm intro">{{ deliveryDateLabel }}</p>
 
       @if (loading()) {
@@ -44,12 +50,12 @@ const MIN_CUPS = 1;
           <div class="alert alert--warning">
             <app-icon name="alert" [size]="18" />
             <span>
-              Your profile does not have a seat yet. Set it before ordering so we know where to
-              deliver.
+              هنوز میزی در پروفایل شما ثبت نشده است. پیش از سفارش آن را مشخص کنید تا بدانیم قهوه
+              را کجا برسانیم.
             </span>
           </div>
           <a routerLink="/profile" class="btn btn--primary" style="margin-top: var(--space-md)">
-            Set your seat
+            ثبت میز
           </a>
         </div>
       } @else if (product(); as item) {
@@ -60,29 +66,30 @@ const MIN_CUPS = 1;
             <div class="product__body">
               <h2 class="product__name">{{ item.name }}</h2>
               <p class="muted text-sm">{{ item.description }}</p>
-              <p class="product__price numeric">{{ money(item.price, item.currency) }} per cup</p>
+              <p class="product__price numeric">{{ money(item.price, item.currency) }} برای هر فنجان</p>
             </div>
           </section>
 
           <!-- Quantity ----------------------------------------------------- -->
           <section class="card">
-            <h2 class="section-title">How many cups?</h2>
+            <h2 class="section-title">چند فنجان؟</h2>
             <div class="stepper">
               <button
                 type="button"
                 class="stepper__btn"
                 (click)="decrement()"
                 [disabled]="quantity() <= minCups"
-                aria-label="One cup fewer"
+                aria-label="یک فنجان کمتر"
               >
                 <app-icon name="minus" [size]="20" />
               </button>
 
-              <label class="visually-hidden" for="quantity">Number of cups</label>
+              <label class="visually-hidden" for="quantity">تعداد فنجان</label>
               <input
                 id="quantity"
                 class="stepper__value numeric"
                 type="number"
+                dir="ltr"
                 inputmode="numeric"
                 [min]="minCups"
                 [max]="maxCups"
@@ -95,7 +102,7 @@ const MIN_CUPS = 1;
                 class="stepper__btn"
                 (click)="increment()"
                 [disabled]="quantity() >= maxCups"
-                aria-label="One cup more"
+                aria-label="یک فنجان بیشتر"
               >
                 <app-icon name="plus" [size]="20" />
               </button>
@@ -103,18 +110,18 @@ const MIN_CUPS = 1;
 
             @if (quantity() >= maxCups) {
               <p class="field__hint">
-                Twenty cups is the most one order can hold. Place a second order for more.
+                هر سفارش حداکثر بیست فنجان است. برای بیشتر، سفارش دوم ثبت کنید.
               </p>
             } @else if (quantity() <= minCups) {
-              <p class="field__hint">At least one cup.</p>
+              <p class="field__hint">دست‌کم یک فنجان.</p>
             }
           </section>
 
           <!-- Delivery ----------------------------------------------------- -->
           <section class="card">
-            <h2 class="section-title">Where should it go?</h2>
+            <h2 class="section-title">کجا تحویل بگیرید؟</h2>
 
-            <div class="choices" role="radiogroup" aria-label="Delivery point">
+            <div class="choices" role="radiogroup" aria-label="محل تحویل">
               <label class="choice" [class.is-selected]="target() === 'seat'">
                 <input
                   type="radio"
@@ -125,7 +132,7 @@ const MIN_CUPS = 1;
                 />
                 <span class="choice__icon"><app-icon name="seat" [size]="20" /></span>
                 <span class="choice__body">
-                  <span class="choice__title">My seat</span>
+                  <span class="choice__title">میز خودم</span>
                   <span class="choice__meta muted">{{ seatSummary() }}</span>
                 </span>
               </label>
@@ -145,7 +152,7 @@ const MIN_CUPS = 1;
                 />
                 <span class="choice__icon"><app-icon name="fridge" [size]="20" /></span>
                 <span class="choice__body">
-                  <span class="choice__title">Nearest refrigerator</span>
+                  <span class="choice__title">نزدیک‌ترین یخچال</span>
                   <span class="choice__meta muted">{{ fridgeSummary() }}</span>
                 </span>
               </label>
@@ -155,25 +162,25 @@ const MIN_CUPS = 1;
           <!-- Note --------------------------------------------------------- -->
           <section class="card">
             <div class="field">
-              <label class="field__label" for="notes">Note for the barista (optional)</label>
+              <label class="field__label" for="notes">یادداشت برای باریستا (اختیاری)</label>
               <textarea
                 id="notes"
                 class="field__control"
                 maxlength="500"
                 [value]="notes()"
                 (input)="onNotesInput($event)"
-                placeholder="Anything we should know?"
+                placeholder="نکته‌ای هست که باید بدانیم؟"
               ></textarea>
-              <p class="field__hint">{{ notes().length }} / 500</p>
+              <p class="field__hint numeric">{{ notesCount() }}</p>
             </div>
           </section>
 
           <!-- Receipt ------------------------------------------------------ -->
           <section class="card">
-            <h2 class="section-title">Payment receipt</h2>
+            <h2 class="section-title">رسید پرداخت</h2>
             <p class="muted text-sm">
-              Optional for now. An admin checks it before starting your order — you can also add it
-              later from the order page.
+              فعلاً اختیاری است. مدیر پیش از شروع سفارش آن را بررسی می‌کند — بعداً هم می‌توانید از
+              صفحهٔ سفارش اضافه‌اش کنید.
             </p>
 
             <label class="upload" [class.is-set]="receipt() !== null">
@@ -183,7 +190,7 @@ const MIN_CUPS = 1;
                 (change)="onFileSelected($event)"
               />
               <app-icon name="upload" [size]="20" />
-              <span>{{ receipt()?.name ?? 'Choose a receipt image or PDF' }}</span>
+              <span>{{ receipt()?.name ?? 'تصویر یا PDF رسید را انتخاب کنید' }}</span>
             </label>
             @if (receiptError(); as message) {
               <p class="field__error" role="alert">
@@ -191,7 +198,7 @@ const MIN_CUPS = 1;
                 {{ message }}
               </p>
             } @else {
-              <p class="field__hint">JPEG, PNG, WebP, HEIC or PDF — up to 5 MB.</p>
+              <p class="field__hint">JPEG، PNG، WebP، HEIC یا PDF — حداکثر ۵ مگابایت.</p>
             }
           </section>
 
@@ -209,19 +216,19 @@ const MIN_CUPS = 1;
               <span class="numeric">{{ money(item.price * quantity(), item.currency) }}</span>
             </div>
             <div class="summary__row summary__row--total">
-              <span>Total</span>
+              <span>مجموع</span>
               <span class="numeric">{{ money(item.price * quantity(), item.currency) }}</span>
             </div>
 
             <button type="submit" class="btn btn--accent btn--block btn--lg" [disabled]="busy()">
               @if (busy()) {
-                <app-spinner [size]="18" label="Placing your order" />
+                <app-spinner [size]="18" label="در حال ثبت سفارش" />
               } @else {
-                Place order
+                ثبت سفارش
               }
             </button>
             <p class="text-sm muted summary__note">
-              Your order starts as <strong>pending</strong> until an admin accepts it.
+              سفارش شما تا تأیید مدیر <strong>در انتظار</strong> می‌ماند.
             </p>
           </section>
         </form>
@@ -473,7 +480,7 @@ export class NewOrder {
 
   protected readonly minCups = MIN_CUPS;
   protected readonly maxCups = MAX_CUPS;
-  protected readonly deliveryDateLabel = `Ready ${formatDeliveryDate(tomorrowIso())}`;
+  protected readonly deliveryDateLabel = `آمادهٔ ${formatDeliveryDate(tomorrowIso())}`;
 
   protected readonly loading = signal(true);
   protected readonly busy = signal(false);
@@ -492,16 +499,21 @@ export class NewOrder {
 
   protected readonly seatSummary = computed(() => {
     const seat = this.profileSeat();
-    return seat ? `${seat.code} — ${seat.label}` : 'No seat set';
+    return seat ? `${seat.code} — ${seat.label}` : 'میزی ثبت نشده';
   });
 
   protected readonly fridgeSummary = computed(() => {
     const fridge = this.profileSeat()?.refrigerators;
-    if (!fridge) return 'No refrigerator mapped to your seat yet';
+    if (!fridge) return 'هنوز یخچالی به میز شما وصل نشده است';
     return fridge.description ? `${fridge.label} — ${fridge.description}` : fridge.label;
   });
 
   protected readonly cupsLabel = computed(() => pluralCups(this.quantity()));
+
+  /** `۴۸ / ۵۰۰` — both numbers in Persian digits. */
+  protected readonly notesCount = computed(
+    () => `${formatNumber(this.notes().length)} / ${formatNumber(500)}`,
+  );
 
   protected readonly money = formatMoney;
 
@@ -547,7 +559,7 @@ export class NewOrder {
     this.receiptError.set(null);
 
     if (file && file.size > 5 * 1024 * 1024) {
-      this.receiptError.set('That file is larger than 5 MB. Choose a smaller one.');
+      this.receiptError.set('حجم این فایل بیشتر از ۵ مگابایت است. فایل کوچک‌تری انتخاب کنید.');
       this.receipt.set(null);
       input.value = '';
       return;
@@ -582,7 +594,7 @@ export class NewOrder {
             await this.orders.uploadReceipt(userId, order.id, file);
           } catch (uploadErr) {
             this.toasts.error(
-              `Order ${order.order_number} was placed, but the receipt did not upload: ${
+              `سفارش ${order.order_number} ثبت شد، اما رسید بارگذاری نشد: ${
                 (uploadErr as Error).message
               }`,
             );
@@ -592,7 +604,7 @@ export class NewOrder {
         }
       }
 
-      this.toasts.success(`Order ${order.order_number} placed for tomorrow.`);
+      this.toasts.success(`سفارش ${order.order_number} برای فردا ثبت شد.`);
       await this.router.navigate(['/orders', order.id]);
     } catch (err) {
       this.error.set((err as Error).message);
