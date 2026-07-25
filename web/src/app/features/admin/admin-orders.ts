@@ -160,8 +160,10 @@ type StatusFilter = OrderStatus | 'all';
                         <app-icon name="receipt" [size]="14" />
                         View receipt
                       </button>
-                    } @else {
-                      <span class="muted text-sm block">No receipt</span>
+                    } @else if (order.payment_status !== 'awaiting_receipt') {
+                      <!-- The label already says "no receipt" when none is expected;
+                           this only flags the odd case of a reviewed payment with no file. -->
+                      <span class="muted text-sm block">No file on record</span>
                     }
                   </td>
                   <td><app-status-chip [status]="order.status" /></td>

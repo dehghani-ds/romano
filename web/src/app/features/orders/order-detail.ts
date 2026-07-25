@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { formatDateTime, formatDeliveryDate, formatMoney, pluralCups } from '../../core/format';
@@ -434,13 +442,19 @@ export class OrderDetailPage {
   });
 
   constructor() {
-    void this.load();
+    // A required input is not populated until after construction, so the fetch
+    // is driven by an effect. Keying it on id() also reloads the page when the
+    // router reuses this component to show a different order.
+    effect(() => {
+      const orderId = this.id();
+      void this.load(orderId);
+    });
   }
 
-  private async load(): Promise<void> {
+  private async load(orderId = this.id()): Promise<void> {
     this.loading.set(true);
     try {
-      const order = await this.ordersService.byId(this.id());
+      const order = await this.ordersService.byId(orderId);
       if (!order) {
         this.error.set('That order could not be found.');
         return;
