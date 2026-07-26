@@ -1,0 +1,5 @@
+// Resolved through stylePreprocessorOptions.includePaths → libs/shared/styles/src,
+// so both the customer site and the admin dashboard load the same three files.
+@use 'fonts';
+@use 'tokens';
+@use 'base';

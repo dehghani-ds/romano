@@ -1,0 +1,33 @@
+import { Routes } from '@angular/router';
+
+import { adminGuard, signedOutGuard } from './core/guards';
+
+export const routes: Routes = [
+  {
+    path: 'signin',
+    title: 'ورود مدیر · داشبورد رومانو',
+    canActivate: [signedOutGuard],
+    loadComponent: () => import('./features/signin/admin-sign-in').then((m) => m.AdminSignIn),
+  },
+  {
+    path: '',
+    pathMatch: 'full',
+    title: 'خلاصه · داشبورد رومانو',
+    canActivate: [adminGuard],
+    loadComponent: () => import('./features/stats/stats-page').then((m) => m.StatsPage),
+  },
+  {
+    path: 'orders',
+    title: 'سفارش‌ها · داشبورد رومانو',
+    canActivate: [adminGuard],
+    loadComponent: () => import('./features/orders/orders-page').then((m) => m.OrdersPage),
+  },
+  {
+    path: 'orders/:id',
+    title: 'سفارش · داشبورد رومانو',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./features/orders/order-detail-page').then((m) => m.OrderDetailPage),
+  },
+  { path: '**', redirectTo: '' },
+];

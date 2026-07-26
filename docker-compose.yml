@@ -1,0 +1,31 @@
+# Local Postgres for Romano.
+#
+#   npm run db:up        start
+#   npm run db:migrate   apply migrations
+#   npm run db:seed      product + admin account
+#
+# Nothing here is production configuration — the password is a local default.
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: romano-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: romano
+      POSTGRES_PASSWORD: romano
+      POSTGRES_DB: romano
+      # The app writes Jalali dates and reasons about "tomorrow" in Tehran.
+      TZ: Asia/Tehran
+      PGTZ: Asia/Tehran
+    ports:
+      - '5432:5432'
+    volumes:
+      - romano-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U romano -d romano']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  romano-pgdata:

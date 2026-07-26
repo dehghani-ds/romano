@@ -5,9 +5,15 @@ Guidance for Claude Code when working in this repository.
 ## What this is
 
 **Romano** — a workplace coffee ordering site. People order Romano coffee today
-for delivery tomorrow, either to their seat or to the refrigerator nearest to
-their seat. An admin accepts each order, which moves it to *in progress*, then
-marks it *done* or *cancelled*.
+for delivery tomorrow, to their team. An admin accepts each order from a
+separate dashboard, which moves it to *in progress*, then marks it *done* or
+*cancelled*.
+
+Ordering does not require an account. A visitor gives their name, mobile,
+company and team, and gets back a guest token that keeps the order readable in
+that browser; the order number plus the mobile finds it again from anywhere.
+Signing up is optional and exists so that orders stay in one place — a guest
+order can be claimed onto an account afterwards.
 
 Romano is the only product on sale today. The schema is already multi-product:
 adding latte or espresso is a row in `products`, not a migration.
@@ -16,24 +22,34 @@ adding latte or espresso is a row in `products`, not a migration.
 
 | Layer | Choice |
 |-------|--------|
+| Monorepo | Nx 23, npm workspaces, single root `package.json` |
 | Front end | Angular 22, standalone components, **zoneless**, signals |
+| Backend | NestJS 11, REST/JSON under `/api` |
+| Database | PostgreSQL 17 via Prisma 7 (`prisma-client` generator + `@prisma/adapter-pg`) |
 | Language | Persian throughout — `<html lang="fa" dir="rtl">`, Vazirmatn, Jalali dates |
 | Styling | Plain SCSS + CSS custom properties (no Tailwind, no component library) |
-| Backend / DB / auth / storage | Supabase (project `mhyizhxbsujhlaahnrjc`, region ap-south-1) |
-| Node | ≥ 22.22.3 (Angular 22 requires it) |
+| Node | ≥ 22.22.3 |
 
 ## Layout
 
 ```
 design-system/romano/MASTER.md   Source of truth for every visual decision
-supabase/migrations/*.sql        Schema, RLS, RPCs — applied in filename order
-web/                             Angular application
-  src/styles/_tokens.scss        Design tokens as CSS variables
-  src/styles/_base.scss          Reset + shared primitives (.btn, .card, .field…)
-  src/app/core/                  Services, models, guards, formatting
-  src/app/shared/                Presentational primitives (icon, chip, toast…)
-  src/app/features/<feature>/    One folder per route
-  src/app/layout/                App shell
+docker-compose.yml               Local Postgres
+prisma.config.ts                 Prisma 7 CLI config (schema path, seed, DATABASE_URL)
+apps/
+  api/                           NestJS  — :3000
+    prisma/schema.prisma         Models; migrations/ holds the SQL
+    prisma/seed.ts               The product + an admin account
+    src/generated/prisma/        Generated client (committed, compiled with the app)
+    src/auth/                    Username + password, JWT, guards
+    src/orders/                  OrdersService — the whole lifecycle lives here
+    src/common/messages.ts       Every Persian sentence a user can see
+  web/                           Angular — customer + guest, :4200
+  dashboard/                     Angular — admin only, :4300
+libs/shared/
+  domain/                        Types, DTO shapes, format.ts (Jalali, Persian digits)
+  ui/                            icon, status-chip, empty-state, spinner, toast, theme
+  styles/                        _tokens.scss, _base.scss, _fonts.scss + Vazirmatn
 ```
 
 ## The rules that matter
@@ -48,15 +64,16 @@ Non-negotiable:
 
 - **No raw hex, px-radius, shadow or duration values in components.** Every value
   is a `var(--token)` from `_tokens.scss`. Verify with
-  `grep -rEn "#[0-9a-fA-F]{6}\b" web/src/app/` — it must return nothing.
-- **No emoji as icons.** All glyphs come from `shared/icon.ts`; add new ones to
-  that map, matching the 24px grid and 1.75px stroke.
+  `grep -rEn "#[0-9a-fA-F]{6}\b" apps/*/src/app libs/shared/ui/src` — it must
+  return nothing.
+- **No emoji as icons.** All glyphs come from `libs/shared/ui/src/icon.ts`; add new
+  ones to that map, matching the 24px grid and 1.75px stroke.
 - **No physical direction in CSS.** The page is RTL: `margin-inline-start`, not
   `margin-left`; `inset-inline-end`, not `right`; `text-align: end`, not `right`.
   Verify with
-  `grep -rEn "(margin|padding|border)-(left|right)|[^-](left|right):" web/src/app web/src/styles`.
+  `grep -rEn "(margin|padding|border)-(left|right)|[^-](left|right):" apps/*/src libs/shared/*/src`.
 - **Persian copy, Persian digits, Jalali dates.** Anything a person reads goes
-  through `core/format.ts` (`fa-IR`); Latin digits survive only inside
+  through `@romano/domain` (`fa-IR`); Latin digits survive only inside
   identifiers — order number, username, mobile — which need the `.code` class so
   bidi cannot reorder them.
 - **Status is never colour alone** — always colour + icon + text.
@@ -64,30 +81,42 @@ Non-negotiable:
 - Touch targets ≥44×44px, visible `:focus-visible`, `prefers-reduced-motion`
   honoured.
 
-### 2. The database owns the business rules
+### 2. `OrdersService` owns the order lifecycle
 
-The client never writes to `orders`, `order_items` or `payments`. There are no
-INSERT/UPDATE policies for customers on those tables — writes go exclusively
-through `SECURITY DEFINER` RPCs:
+There is no generic CRUD endpoint for `orders`, `order_items`, `payments` or
+`order_status_history`, and there must never be one. Every write goes through
+`apps/api/src/orders/orders.service.ts`, inside a transaction:
 
-| RPC | Who | Does |
-|-----|-----|------|
-| `place_order` | customer | Prices the order server-side, resolves the seat/fridge, creates order + item + payment |
-| `attach_receipt` | owner or admin | Stores the receipt path, marks the payment `submitted` |
-| `cancel_my_order` | owner | Cancels, but only while `pending` |
-| `set_order_status` | admin | Moves through the lifecycle; verifies a submitted receipt on accept |
-| `review_payment` | admin | Verifies or rejects a receipt (rejection requires a reason) |
+| Method | Who | Does |
+|--------|-----|------|
+| `place` | anyone | Prices from `products`, resolves the destination, creates order + item + payment + first history row |
+| `attachReceipt` | owner, guest token holder, or admin | Stores the file, marks the payment `submitted` |
+| `cancelOwn` | owner or guest token holder | Cancels, but only while `pending` |
+| `adminSetStatus` | admin | Moves through the lifecycle, stamps timestamps, appends history |
+| `adminReviewPayment` | admin | Verifies or rejects a receipt (rejection requires a reason) |
+| `claim` | signed-in user | Moves a guest order onto their account |
 
-Enforced by triggers, not by the UI:
+Rules the service enforces, all previously Postgres triggers:
 
-- Orders must be for a future day (default tomorrow).
+- Orders must be for a future **Tehran** day (default tomorrow), checked at
+  creation only — an admin can still close out yesterday's order.
 - Status machine: `pending → in_progress → done`, and `pending|in_progress →
-  cancelled`. Terminal states are terminal.
-- `orders.total_amount` is recomputed from `order_items` on every change.
-- Every status change is appended to `order_status_history`.
+  cancelled`. `done` and `cancelled` are terminal.
+- `orders.totalAmount` and `payments.amount` are computed from the product price
+  and quantity, never from the request.
+- Every status change appends to `order_status_history`.
+- Accepting an order auto-verifies a payment that is merely `submitted`.
 
-**If you add a business rule, put it in the database**, then surface it in the
-UI. A rule that lives only in Angular is not enforced.
+**Under Supabase these guarantees came from row level security.** They now rest
+on application code, so: if you add a business rule, put it in `OrdersService`,
+and add a test. `apps/api/src/orders/orders.service.spec.ts` covers the
+transition table and `canView`; keep it that way.
+
+What *is* still in the database, in
+`apps/api/prisma/migrations/*_integrity_constraints/`: unique indexes, foreign
+keys, and CHECK constraints for the facts that must hold no matter which code
+path wrote the row — including `orders_owner_ck`, which guarantees every order
+has either a `user_id` or a `guest_token`.
 
 ### 3. Angular conventions
 
@@ -95,79 +124,68 @@ UI. A rule that lives only in Angular is not enforced.
 - `signal()` for state, `computed()` for derived values. No `zone.js`.
 - `ChangeDetectionStrategy.OnPush` on every component.
 - Routes lazy-load via `loadComponent`.
-- Services are `providedIn: 'root'`; the Supabase client comes from the
-  `SUPABASE` injection token, never `createClient` at a call site.
-- Errors reaching the user go through `toUserMessage()`, which turns constraint
-  names into Persian sentences. RPC messages are already written for end users,
-  in Persian — a new user-facing message belongs in a migration, not a
-  translation table in the client.
+- Services are `providedIn: 'root'`; HTTP goes through `provideHttpClient()` with
+  `authInterceptor`, which attaches the bearer token and refreshes it once on 401.
+- Shared code is imported as `@romano/domain` / `@romano/ui`, never by relative
+  path across project boundaries.
+- Errors reaching the user go through `toUserMessage()`, which is now a thin
+  passthrough: the API already answers with a Persian, user-facing `message`. **A
+  new user-facing message belongs in `apps/api/src/common/messages.ts`**, not in
+  a translation table in the client.
 
-### 4. Auth is username-based
+### 4. Auth is username-based, and ordering is not gated
 
-There is no email field. Sign-up collects username + password; the client maps
-the username to `<username>@<usernameEmailDomain>` (see
-`web/src/environments/`) so Supabase Auth works unchanged.
+Sign-up collects username + password. There is no email column and no synthetic
+email address — that mapping only ever existed to satisfy Supabase Auth, and it
+is gone along with the DNS requirement and the unusable password reset. An admin
+resets a password; adding a real, optional email column is the upgrade path.
 
-Two constraints on that domain, both learned the hard way:
+Passwords are argon2. The API issues a short-lived access token and a long-lived
+refresh token; both live in `localStorage` under `romano-auth` (`romano-admin-auth`
+for the dashboard, so the two apps do not share a session).
 
-1. **It must resolve in DNS.** Supabase Auth looks the domain up and rejects
-   sign-up with `email_address_invalid` if it does not exist. An invented
-   domain such as `users.romano.app` fails outright. It does not need to accept
-   mail — it only has to have a record.
-2. **"Confirm email" must stay off** in the Supabase project, because nothing
-   ever reads a mailbox there. `AuthService.signUp` throws an explicit message
-   if it is switched back on.
-
-Consequence: there is no email password reset. An admin resets a password from
-the Supabase dashboard. Adding a real optional email column is the upgrade path.
-
-**Testing note:** inserting into `auth.users` with SQL bypasses GoTrue
-completely, including this validation. Sign-up is only genuinely tested by
-calling `auth.signUp()` over HTTP.
+Guests are identified by a 32-byte `guestToken` returned once at checkout. The
+browser keeps it in `romano-guest-orders`; the client sends it as `X-Guest-Token`.
+`GET /api/orders/:id` answers 404 — not 403 — for a wrong token, so an order id
+is never a probe for whether an order exists.
 
 ## Working commands
 
 ```bash
-cd web
-npm start                 # dev server on :4200
-npm run build             # production build (must be warning-free)
-npx ng build --configuration development
+npm run db:up                 # Postgres in Docker
+npm run db:migrate            # apply migrations
+npm run db:seed               # product + admin (ADMIN_USERNAME / ADMIN_PASSWORD)
+
+npx nx serve api              # :3000
+npx nx serve web              # :4200
+npx nx serve dashboard        # :4300
+
+npx nx run-many -t build      # all three, must be warning-free
+npx nx run-many -t test
 ```
 
-Database changes: write a new timestamped file in `supabase/migrations/`, then
-apply it with the Supabase MCP `apply_migration` tool. Always run
-`get_advisors` with `type: "security"` afterwards and resolve what it reports.
+Copy `.env.example` to `.env` first. Both Angular apps proxy `/api` to :3000 in
+development, so no CORS is involved locally.
 
-Regenerate types after a schema change:
-`supabase gen types typescript --project-id mhyizhxbsujhlaahnrjc`
-(hand-maintained equivalents live in `web/src/app/core/models.ts`).
+Database changes: edit `apps/api/prisma/schema.prisma`, then
+`npx prisma migrate dev --name <what_changed>`. Constraints Prisma cannot express
+go in a hand-written migration alongside it. `npx prisma generate` refreshes
+`apps/api/src/generated/prisma`, which is committed and compiled with the app.
 
 ## Making someone an admin
 
 New accounts are always `customer`. Promote by username:
 
 ```sql
-update public.profiles set role = 'admin' where username = 'their_username';
+update users set role = 'admin' where username = 'their_username';
 ```
-
-## Testing notes
-
-The Supabase REST host is blocked from some sandboxes by egress policy. When it
-is, verify backend behaviour with SQL through the MCP `execute_sql` tool,
-impersonating a user exactly as PostgREST does:
-
-```sql
-perform set_config('role', 'authenticated', true);
-perform set_config('request.jwt.claims',
-  json_build_object('sub', '<user-uuid>', 'role', 'authenticated')::text, true);
-```
-
-This exercises the real RLS policies and RPC authorization.
 
 ## Deliberately not built yet
 
 - Online payment (IPG). `payments.method` already has an `ipg` value and
   `payments.reference` is there for the gateway reference.
 - Products beyond Romano — the schema supports them; the UI shows one product.
-- Admin CRUD for seats, fridges and products (currently seeded by migration).
-- Push/SMS notification when an order is accepted.
+- Admin CRUD for products (currently seeded).
+- Push/SMS notification when an order is accepted, and OTP for guest checkout.
+- Rate limiting is in-memory (`@nestjs/throttler` default store); a multi-instance
+  deployment needs a shared one.

@@ -1,0 +1,212 @@
+// Romano — schema.
+//
+// Two things changed when this moved off Supabase:
+//
+//   1. `auth.users` + `profiles` collapsed into one `users` table. Sign-in is by
+//      username; there is no email column and no synthetic-email mapping.
+//   2. Seats, zones and refrigerators are gone. An order is delivered to a
+//      company and a team, both snapshotted onto the order so that editing a
+//      profile later never rewrites the history of an old order.
+//
+// An order belongs either to a registered user (`userId`) or to a guest, who is
+// identified by an unguessable `guestToken` handed back once at checkout. The
+// `orders_owner_ck` constraint in the migration enforces that one of the two is
+// always present.
+
+// The v7 generator emits TypeScript, so the client compiles with the rest of
+// the app. It lands inside src/ on purpose: tsc then carries it into dist and
+// the import path is the same at build time and at run time.
+generator client {
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  runtime         = "nodejs"
+  moduleFormat    = "cjs"
+  importFileExtension = ""
+}
+
+// Prisma 7 keeps the connection URL out of the schema — it lives in
+// prisma.config.ts for the CLI, and reaches the client through a pg adapter.
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  customer
+  admin
+
+  @@map("user_role")
+}
+
+enum OrderStatus {
+  pending
+  in_progress
+  done
+  cancelled
+
+  @@map("order_status")
+}
+
+enum PaymentMethod {
+  receipt_upload
+  ipg
+  cash
+
+  @@map("payment_method")
+}
+
+enum PaymentStatus {
+  awaiting_receipt
+  submitted
+  verified
+  rejected
+
+  @@map("payment_status")
+}
+
+model User {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  username     String   @unique
+  passwordHash String   @map("password_hash")
+  firstName    String   @map("first_name")
+  lastName     String   @map("last_name")
+  mobile       String   @unique
+  /// Free text. Everyone is at دیجی‌پی today; the column is here so they need not be.
+  companyName  String   @default("دیجی‌پی") @map("company_name")
+  teamName     String   @map("team_name")
+  role         UserRole @default(customer)
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  orders           Order[]              @relation("OrderCustomer")
+  acceptedOrders   Order[]              @relation("OrderAcceptedBy")
+  payments         Payment[]            @relation("PaymentCustomer")
+  verifiedPayments Payment[]            @relation("PaymentVerifiedBy")
+  statusChanges    OrderStatusHistory[]
+
+  @@index([role])
+  @@map("users")
+}
+
+model Product {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  slug        String   @unique
+  name        String
+  description String?
+  price       Decimal  @db.Decimal(12, 2)
+  currency    String   @default("IRR")
+  imageUrl    String?  @map("image_url")
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  orderItems OrderItem[]
+
+  @@map("products")
+}
+
+model Order {
+  id          String @id @default(uuid(7)) @db.Uuid
+  orderNumber String @unique @map("order_number")
+
+  /// Null for a guest order.
+  userId     String? @map("user_id") @db.Uuid
+  /// Set only for a guest order — the bearer secret that lets them read it back.
+  guestToken String? @unique @map("guest_token")
+
+  /// Snapshot of who receives the coffee and where, taken at checkout.
+  contactName   String @map("contact_name")
+  contactMobile String @map("contact_mobile")
+  companyName   String @map("company_name")
+  teamName      String @map("team_name")
+
+  status       OrderStatus @default(pending)
+  deliveryDate DateTime    @map("delivery_date") @db.Date
+  totalAmount  Decimal     @default(0) @map("total_amount") @db.Decimal(12, 2)
+  currency     String      @default("IRR")
+  notes        String?
+  adminNote    String?     @map("admin_note")
+
+  acceptedById String?   @map("accepted_by") @db.Uuid
+  acceptedAt   DateTime? @map("accepted_at") @db.Timestamptz(6)
+  completedAt  DateTime? @map("completed_at") @db.Timestamptz(6)
+  cancelledAt  DateTime? @map("cancelled_at") @db.Timestamptz(6)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user       User?                @relation("OrderCustomer", fields: [userId], references: [id], onDelete: Cascade)
+  acceptedBy User?                @relation("OrderAcceptedBy", fields: [acceptedById], references: [id], onDelete: SetNull)
+  items      OrderItem[]
+  payment    Payment?
+  history    OrderStatusHistory[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([deliveryDate(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@index([contactMobile])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  orderId   String   @map("order_id") @db.Uuid
+  productId String   @map("product_id") @db.Uuid
+  quantity  Int
+  unitPrice Decimal  @map("unit_price") @db.Decimal(12, 2)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@unique([orderId, productId])
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model Payment {
+  id       String  @id @default(uuid(7)) @db.Uuid
+  orderId  String  @unique @map("order_id") @db.Uuid
+  /// Null for a guest order, like Order.userId.
+  userId   String? @map("user_id") @db.Uuid
+  amount   Decimal @db.Decimal(12, 2)
+  currency String  @default("IRR")
+
+  method PaymentMethod @default(receipt_upload)
+  status PaymentStatus @default(awaiting_receipt)
+
+  /// Storage key inside UPLOAD_DIR, never a URL.
+  receiptPath  String?   @map("receipt_path")
+  reference    String?
+  paidAt       DateTime? @map("paid_at") @db.Timestamptz(6)
+  verifiedById String?   @map("verified_by") @db.Uuid
+  verifiedAt   DateTime? @map("verified_at") @db.Timestamptz(6)
+  rejectReason String?   @map("reject_reason")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  order      Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user       User? @relation("PaymentCustomer", fields: [userId], references: [id], onDelete: Cascade)
+  verifiedBy User? @relation("PaymentVerifiedBy", fields: [verifiedById], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([status])
+  @@map("payments")
+}
+
+model OrderStatusHistory {
+  id          String       @id @default(uuid(7)) @db.Uuid
+  orderId     String       @map("order_id") @db.Uuid
+  fromStatus  OrderStatus? @map("from_status")
+  toStatus    OrderStatus  @map("to_status")
+  changedById String?      @map("changed_by") @db.Uuid
+  note        String?
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  order     Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  changedBy User? @relation(fields: [changedById], references: [id], onDelete: SetNull)
+
+  @@index([orderId, createdAt(sort: Desc)])
+  @@map("order_status_history")
+}

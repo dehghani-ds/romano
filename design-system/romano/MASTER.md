@@ -7,7 +7,7 @@
 > **This file is the single source of truth for all visual decisions in this repo.**
 > Never hardcode a hex value, spacing value, radius, shadow, or duration in a
 > component. Every value below exists as a CSS custom property in
-> `web/src/styles/_tokens.scss` — use the token.
+> `libs/shared/styles/src/_tokens.scss` — use the token.
 
 ---
 
@@ -152,7 +152,7 @@ unreliable for users in Iran, and the variable font is one 111 KB request that
 covers 100–900. Licensed under the SIL OFL (`web/public/fonts/OFL.txt`).
 
 ```css
-/* web/src/styles/_fonts.scss */
+/* libs/shared/styles/src/_fonts.scss */
 @font-face {
   font-family: 'Vazirmatn';
   src: url('/fonts/Vazirmatn-Variable.woff2') format('woff2-variations');
@@ -405,28 +405,31 @@ Persian, warm, short, concrete. No exclamation marks. Errors state the cause
 *and* the fix («شمارهٔ موبایل باید ۱۱ رقم باشد و با ۰۹ شروع شود، مثلاً ۰۹۱۲۱۲۳۴۵۶۷»).
 
 - **Digits are Persian** everywhere a person reads a quantity, price or date —
-  `Intl.NumberFormat('fa-IR')`, via the helpers in `core/format.ts`. Latin digits
+  `Intl.NumberFormat('fa-IR')`, via the helpers in `@romano/domain`. Latin digits
   survive only inside identifiers (order number, username, mobile).
 - **Dates are Jalali**, weekday + date («فردا · یکشنبه ۴ مرداد»), never a bare ISO
   string. `Intl.DateTimeFormat('fa-IR')` gives the Persian calendar for free. The
-  wire format does not change: `delivery_date` is still Gregorian `YYYY-MM-DD`.
+  wire format does not change: `deliveryDate` is still Gregorian `YYYY-MM-DD`.
 - **Money is `ریال`** after the amount — the currency comes from the row, not the
   component.
-- **Error text raised by an RPC is copy**, not a log line. It lands on the screen
-  verbatim, so it is written in Persian in the migration.
+- **Error text returned by the API is copy**, not a log line. It lands on the
+  screen verbatim, so it is written in Persian at the source —
+  `apps/api/src/common/messages.ts`, never a translation table in the client.
 
 ---
 
 ## 9. Implementation contract (Angular)
 
-- Tokens live in `web/src/styles/_tokens.scss`, imported once by `src/styles.scss`.
+- Tokens live in `libs/shared/styles/src/_tokens.scss`, imported once by each app's
+  `src/styles.scss` through `stylePreprocessorOptions.includePaths`.
   Components consume `var(--token)` only.
 - Standalone components everywhere; **no NgModules**.
 - Signals for component state; `computed()` for derived values.
 - `provideRouter()` / `provideHttpClient()` in `app.config.ts`.
 - Route-level lazy loading via `loadComponent`.
 - Shared primitives (button, input, chip, card, toast, spinner) live in
-  `web/src/app/shared/ui/` — build the primitive once, never re-style inline.
+  `libs/shared/ui/` — build the primitive once, never re-style inline, and share
+  it between the customer site and the admin dashboard.
 - Theme is toggled by `data-theme` on `<html>`, defaulting to
   `prefers-color-scheme` and persisted in `localStorage`.
 

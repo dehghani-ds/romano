@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../../out-tsc/web",
+    "types": []
+  },
+  "include": ["src/**/*.ts", "../../libs/shared/**/src/**/*.ts"],
+  "exclude": ["src/**/*.spec.ts", "../../libs/shared/**/src/**/*.spec.ts"]
+}

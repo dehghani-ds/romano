@@ -5,12 +5,16 @@ node_modules/
 dist/
 .angular/
 out-tsc/
+.nx/
+
+# Uploaded receipts — user data, never committed
+apps/api/uploads/
 
 # Logs
 *.log
 npm-debug.log*
 
-# Environment / secrets — never commit a service-role key
+# Environment / secrets
 .env
 .env.*
 !.env.example
@@ -21,3 +25,6 @@ npm-debug.log*
 !.vscode/extensions.json
 *.swp
 .DS_Store
+
+# Nx serve scratch output
+tmp/
