@@ -21,5 +21,6 @@
       "inputs": ["default", "^production"]
     }
   },
-  "defaultBase": "main"
+  "defaultBase": "main",
+  "analytics": true
 }

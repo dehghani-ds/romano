@@ -25,7 +25,10 @@ function required(name: string): string {
 
 export function configuration(): AppConfig {
   return {
-    port: Number(process.env['PORT'] ?? 3000),
+    // Deliberately API_PORT, not PORT: Nx loads the root .env into every task,
+    // and Angular's dev server lets a bare PORT override its own port option —
+    // a generic name here would drag `nx serve web` onto the API's port.
+    port: Number(process.env['API_PORT'] ?? 3000),
     databaseUrl: required('DATABASE_URL'),
     corsOrigins: (process.env['CORS_ORIGINS'] ?? 'http://localhost:4200,http://localhost:4300')
       .split(',')
