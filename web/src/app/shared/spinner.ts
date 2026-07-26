@@ -17,7 +17,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
     .spinner {
       display: block;
       border: 2px solid currentColor;
-      border-right-color: transparent;
+      border-inline-end-color: transparent;
       border-radius: 50%;
       opacity: 0.9;
       animation: spin 640ms linear infinite;

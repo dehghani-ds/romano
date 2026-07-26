@@ -7,47 +7,58 @@
 
 :root {
   /* --- Brand ------------------------------------------------------------- */
-  --c-primary: #92400e;
-  --c-primary-hover: #7c3a0c;
-  --c-primary-active: #652f0a;
+  /* Lime, not lemon: the syrup in a Romano makes the glass read green. The
+     primary is a deep rind green so white text clears AAA on it; the bright
+     syrup lime is the accent, which carries dark text instead. */
+  --c-primary: #3f6212;
+  --c-primary-hover: #35520f;
+  --c-primary-active: #2a410b;
   --c-on-primary: #ffffff;
-  --c-primary-tint: #fdf6ec;
+  --c-primary-tint: #f1f7e2;
 
-  --c-accent: #a16207;
-  --c-accent-hover: #8a5406;
-  --c-on-accent: #ffffff;
+  --c-accent: #84cc16;
+  --c-accent-hover: #74b512;
+  --c-on-accent: #181c10;
 
   /* --- Surfaces ---------------------------------------------------------- */
-  --c-bg: #fffbeb;
+  --c-bg: #f8fbee;
   --c-surface: #ffffff;
-  --c-surface-2: #fef9f0;
+  --c-surface-2: #f2f7e4;
 
   /* --- Text -------------------------------------------------------------- */
-  --c-fg: #1c1917;
-  --c-fg-muted: #78716c;
-  --c-fg-subtle: #a8a29e;
+  --c-fg: #181c10;
+  --c-fg-muted: #5f6b4f;
+  --c-fg-subtle: #8d9880;
 
   /* --- Lines ------------------------------------------------------------- */
-  --c-border: #ede4d3;
-  --c-border-strong: #d6c7ae;
-  --c-ring: #92400e;
-  --c-ring-shadow: rgba(146, 64, 14, 0.15);
-  --c-scrim: rgba(28, 25, 23, 0.5);
+  --c-border: #e1e9ce;
+  /* Input borders are UI components: WCAG 1.4.11 wants 3:1, so this is darker
+     than a decorative hairline would be. --c-border stays soft for dividers. */
+  --c-border-strong: #7d8e55;
+  --c-ring: #3f6212;
+  --c-ring-shadow: rgba(63, 98, 18, 0.18);
+  --c-scrim: rgba(20, 24, 12, 0.5);
+
+  /* --- Ice (decorative only — never a text or border colour) ------------- */
+  --c-ice: #cfeaf3;
+  --c-ice-deep: #8fd0e3;
 
   /* --- Semantic ---------------------------------------------------------- */
-  --c-success: #15803d;
-  --c-warning: #b45309;
+  --c-success: #047857;
+  --c-warning: #9a3412;
   --c-danger: #b91c1c;
   --c-danger-hover: #991b1b;
   --c-info: #1d4ed8;
 
   /* --- Order status ------------------------------------------------------ */
-  --c-status-pending-fg: #92400e;
-  --c-status-pending-bg: #fef3c7;
+  /* Two hues moved when the brand went lime: `done` to emerald so it is not
+     the brand colour, `pending` to orange so it is not the citrus family. */
+  --c-status-pending-fg: #9a3412;
+  --c-status-pending-bg: #ffedd5;
   --c-status-progress-fg: #1d4ed8;
   --c-status-progress-bg: #dbeafe;
-  --c-status-done-fg: #15803d;
-  --c-status-done-bg: #dcfce7;
+  --c-status-done-fg: #047857;
+  --c-status-done-bg: #d1fae5;
   --c-status-cancelled-fg: #b91c1c;
   --c-status-cancelled-bg: #fee2e2;
 
@@ -90,11 +101,11 @@
   --radius-xl: 24px;
   --radius-full: 999px;
 
-  /* --- Shadow (warm-tinted, never harsh black) --------------------------- */
-  --shadow-sm: 0 1px 2px rgba(69, 39, 19, 0.06);
-  --shadow-md: 0 4px 12px rgba(69, 39, 19, 0.08);
-  --shadow-lg: 0 12px 28px rgba(69, 39, 19, 0.12);
-  --shadow-xl: 0 24px 48px rgba(69, 39, 19, 0.16);
+  /* --- Shadow (olive-tinted, never harsh black) -------------------------- */
+  --shadow-sm: 0 1px 2px rgba(38, 51, 14, 0.06);
+  --shadow-md: 0 4px 12px rgba(38, 51, 14, 0.09);
+  --shadow-lg: 0 12px 28px rgba(38, 51, 14, 0.13);
+  --shadow-xl: 0 24px 48px rgba(38, 51, 14, 0.17);
 
   /* --- Motion ------------------------------------------------------------ */
   --dur-fast: 120ms;
@@ -114,42 +125,48 @@
 
 /* Dark: lighter, desaturated tonal variants — not inverted values. */
 :root[data-theme='dark'] {
-  --c-primary: #d97706;
-  --c-primary-hover: #f59e0b;
-  --c-primary-active: #b45309;
-  --c-on-primary: #1c1917;
-  --c-primary-tint: #33261a;
+  /* Dark flips the brand roles: on a near-black page the deep rind green has
+     nowhere to go, so the bright syrup lime becomes the primary and carries
+     dark text. */
+  --c-primary: #a3e635;
+  --c-primary-hover: #bef264;
+  --c-primary-active: #84cc16;
+  --c-on-primary: #14180c;
+  --c-primary-tint: #26301a;
 
-  --c-accent: #fbbf24;
-  --c-accent-hover: #fcd34d;
-  --c-on-accent: #1c1917;
+  --c-accent: #bef264;
+  --c-accent-hover: #d9f99d;
+  --c-on-accent: #14180c;
 
-  --c-bg: #1c1917;
-  --c-surface: #292524;
-  --c-surface-2: #332e2b;
+  --c-bg: #12150e;
+  --c-surface: #1b1f16;
+  --c-surface-2: #242a1d;
 
-  --c-fg: #fafaf9;
-  --c-fg-muted: #b5ada6;
-  --c-fg-subtle: #78716c;
+  --c-fg: #f7faf0;
+  --c-fg-muted: #afb8a0;
+  --c-fg-subtle: #79856a;
 
-  --c-border: #44403c;
-  --c-border-strong: #57534e;
-  --c-ring: #f59e0b;
-  --c-ring-shadow: rgba(245, 158, 11, 0.25);
+  --c-border: #39412f;
+  --c-border-strong: #6b7a5c;
+  --c-ring: #a3e635;
+  --c-ring-shadow: rgba(163, 230, 53, 0.25);
   --c-scrim: rgba(0, 0, 0, 0.6);
 
-  --c-success: #4ade80;
-  --c-warning: #fbbf24;
+  --c-ice: #1f3a44;
+  --c-ice-deep: #4d8fa3;
+
+  --c-success: #6ee7b7;
+  --c-warning: #fdba74;
   --c-danger: #f87171;
   --c-danger-hover: #fca5a5;
   --c-info: #60a5fa;
 
-  --c-status-pending-fg: #fcd34d;
-  --c-status-pending-bg: #3b2e12;
+  --c-status-pending-fg: #fdba74;
+  --c-status-pending-bg: #3a2412;
   --c-status-progress-fg: #93c5fd;
   --c-status-progress-bg: #1e293b;
-  --c-status-done-fg: #86efac;
-  --c-status-done-bg: #14301f;
+  --c-status-done-fg: #6ee7b7;
+  --c-status-done-bg: #0c2e24;
   --c-status-cancelled-fg: #fca5a5;
   --c-status-cancelled-bg: #3b1717;
 
