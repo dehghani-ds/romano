@@ -112,18 +112,42 @@ export class AuthService {
 
     if (error) throw new Error(toUserMessage(error));
 
-    // Usernames map to a synthetic domain that receives no mail, so a
-    // confirmation link would never arrive. If Supabase withheld the session,
-    // "Confirm email" is still switched on for the project.
-    if (!data.session) {
+    if (data.session) {
+      await this.loadProfile();
+      return;
+    }
+
+    /*
+     * No session came back, and that means one of two very different things:
+     * "Confirm email" is on for the project, or the username is already
+     * registered. GoTrue deliberately makes them look identical — it returns a
+     * decoy user for an address that already exists, so that a stranger cannot
+     * use sign-up to discover who has an account.
+     *
+     * Telling the person "your account was created" is wrong in the second
+     * case, and it is the case they can actually do something about. One
+     * sign-in attempt separates them.
+     */
+    const { error: signInError } = await this.supabase.auth.signInWithPassword({
+      email: this.emailFor(username),
+      password: details.password,
+    });
+
+    if (!signInError) {
+      await this.loadProfile();
+      return;
+    }
+
+    const code = (signInError as { code?: string }).code;
+    if (code === 'invalid_credentials' || /invalid login credentials/i.test(signInError.message)) {
       throw new Error(
-        'حساب شما ساخته شد اما ورود خودکار انجام نشد. مدیر باید گزینهٔ ' +
-          '«Confirm email» را در پروژهٔ Supabase خاموش کند ' +
-          '(Authentication → Sign In / Providers → Email).',
+        'این نام کاربری قبلاً ثبت شده است. وارد شوید، یا نام کاربری دیگری انتخاب کنید.',
       );
     }
 
-    await this.loadProfile();
+    // Anything else — `email_not_confirmed` above all — is a project setting,
+    // and toUserMessage() says what an admin has to change.
+    throw new Error(toUserMessage(signInError));
   }
 
   async signIn(username: string, password: string): Promise<void> {

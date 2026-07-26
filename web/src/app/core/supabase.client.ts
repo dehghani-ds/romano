@@ -57,7 +57,8 @@ export function toUserMessage(error: unknown): string {
   ) {
     return (
       'این حساب هنوز فعال نشده است. مدیر باید گزینهٔ «Confirm email» را در پروژهٔ ' +
-      'Supabase خاموش کند — ورود با نام کاربری به تأیید ایمیل نیازی ندارد.'
+      'Supabase خاموش کند (Authentication ← Sign In / Providers ← Email) — ورود با ' +
+      'نام کاربری به تأیید ایمیل نیازی ندارد.'
     );
   }
 
