@@ -154,19 +154,21 @@ type StatusFilter = OrderStatus | 'all';
                     <span class="text-sm">{{ paymentLabel(order) }}</span>
                   </td>
                   <td><app-status-chip [status]="order.status" /></td>
-                  <td class="actions">
-                    @for (action of actionsFor(order.status); track action.status) {
-                      <button
-                        type="button"
-                        class="btn btn--sm"
-                        [class.btn--primary]="action.status !== 'cancelled'"
-                        [class.btn--danger]="action.status === 'cancelled'"
-                        [disabled]="working() === order.id"
-                        (click)="apply(order, action.status)"
-                      >
-                        {{ action.label }}
-                      </button>
-                    }
+                  <td>
+                    <div class="actions">
+                      @for (action of actionsFor(order.status); track action.status) {
+                        <button
+                          type="button"
+                          class="btn btn--sm"
+                          [class.btn--primary]="action.status !== 'cancelled'"
+                          [class.btn--danger]="action.status === 'cancelled'"
+                          [disabled]="working() === order.id"
+                          (click)="apply(order, action.status)"
+                        >
+                          {{ action.label }}
+                        </button>
+                      }
+                    </div>
                   </td>
                 </tr>
               }
@@ -374,6 +376,10 @@ type StatusFilter = OrderStatus | 'all';
       gap: 2px;
     }
 
+    /* In the table this wraps the buttons instead of being the cell itself: a
+       flex display on a td takes the cell out of the table layout — the browser
+       wraps it in an anonymous cell — so its 56px height and bottom border stop
+       lining up with the row beside it. */
     .actions {
       display: flex;
       gap: var(--space-xs);
