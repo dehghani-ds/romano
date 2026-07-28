@@ -10,6 +10,10 @@
       content="رومانوی فردا را همین امروز سفارش بدهید — تحویل سر میز شما یا نزدیک‌ترین یخچال."
     />
     <meta name="theme-color" content="#3f6212" />
+    <!-- Ownership check for the ای‌نماد trust seal. It has to be served from the
+         document itself: the crawler reads the raw HTML and never runs Angular,
+         so this cannot move into a component. -->
+    <meta name="enamad" content="67264173" />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <!-- Vazirmatn is served from our own origin: Google Fonts is unreliable for
          users in Iran, and a self-hosted variable font is one 111 KB request. -->
