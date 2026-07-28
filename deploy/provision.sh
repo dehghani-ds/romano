@@ -38,7 +38,9 @@ else
 fi
 
 # ── Node, PM2, Docker ────────────────────────────────────────────────────────
-ssh "$SSH_TARGET" bash -euo pipefail <<'REMOTE'
+NPM_VERSION="$(node -p "require('$REPO_ROOT/package.json').packageManager.split('@')[1]")"
+
+ssh "$SSH_TARGET" NPM_VERSION="$NPM_VERSION" bash -euo pipefail <<'REMOTE'
 export DEBIAN_FRONTEND=noninteractive
 
 # package.json pins engines.node >= 22.22.3.
@@ -64,6 +66,18 @@ if [ "$(node_major)" -lt 22 ]; then
   fi
 else
   echo "--> node present: $(node -v)"
+fi
+
+# Node 22 ships npm 10, which rejects this repo's lockfile ("Missing:
+# chokidar@4.0.3 from lock file"). The lockfile is correct; npm 10 just resolves
+# hoisting differently. The API deploy runs `npm ci` here, so it needs the match.
+if [ "$(npm -v | cut -d. -f1)" -lt "${NPM_VERSION%%.*}" ]; then
+  echo "--> upgrading npm $(npm -v) -> $NPM_VERSION"
+  npm install -g "npm@$NPM_VERSION"
+  hash -r
+  echo "--> npm now: $(npm -v)"
+else
+  echo "--> npm present: $(npm -v)"
 fi
 
 if ! command -v pm2 >/dev/null 2>&1; then
