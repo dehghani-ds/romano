@@ -47,7 +47,13 @@ jobs:
 
       # The client is committed under apps/api/src/generated/prisma and compiled
       # with the app, but regenerate anyway so a stale commit cannot ship.
+      #
+      # prisma.config.ts resolves env('DATABASE_URL') when the CLI loads it, and
+      # throws if it is unset — but generating a client never opens a connection.
+      # A placeholder keeps the production secret out of a step that cannot use it.
       - name: Generate Prisma Client
+        env:
+          DATABASE_URL: postgresql://placeholder:placeholder@127.0.0.1:5432/placeholder
         run: npm run db:generate
 
       # Not in digfon's pipeline. It is here because OrdersService carries the
