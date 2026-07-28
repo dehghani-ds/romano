@@ -144,14 +144,25 @@ jobs:
           # containing @ or / would break a naive URL rewrite.
           REMOTE_DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          ssh -f -N -o ExitOnForwardFailure=yes \
+          # Not `ssh -f`: a forked tunnel inherits this step's stdout/stderr, and
+          # the Actions runner will not end a step until that pipe closes — the
+          # job wedges on a later step while the tunnel idles. Background it with
+          # stdio detached instead, and kill it on the way out however we exit.
+          ssh -N -o ExitOnForwardFailure=yes \
             -L ${{ env.DB_TUNNEL_PORT }}:127.0.0.1:5432 \
-            "${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}"
+            "${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}" >/dev/null 2>&1 &
+          TUNNEL_PID=$!
+          trap 'kill "$TUNNEL_PID" 2>/dev/null || true' EXIT
 
+          up=0
           for i in $(seq 1 20); do
-            (exec 3<>/dev/tcp/127.0.0.1/${{ env.DB_TUNNEL_PORT }}) 2>/dev/null && break
+            if (exec 3<>/dev/tcp/127.0.0.1/${{ env.DB_TUNNEL_PORT }}) 2>/dev/null; then up=1; break; fi
             sleep 3
           done
+          if [ "$up" != "1" ]; then
+            echo "::error::DB tunnel to 127.0.0.1:${{ env.DB_TUNNEL_PORT }} never opened."
+            exit 1
+          fi
 
           # urlsplit/urlunsplit swaps only the netloc host:port, leaving the
           # userinfo and the query string exactly as they were.
