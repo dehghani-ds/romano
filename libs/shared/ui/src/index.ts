@@ -1,5 +1,6 @@
 export * from './icon';
 export * from './status-chip';
+export * from './payment-card';
 export * from './empty-state';
 export * from './spinner';
 export * from './toast-host';

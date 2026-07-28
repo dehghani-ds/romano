@@ -10,7 +10,7 @@ import {
   pluralCups,
   tomorrowIso,
 } from '@romano/domain';
-import { Icon, Spinner, ToastService } from '@romano/ui';
+import { Icon, PaymentCard, Spinner, ToastService } from '@romano/ui';
 
 import { AuthService } from '../../core/auth.service';
 import { CatalogService } from '../../core/catalog.service';
@@ -21,16 +21,20 @@ const MIN_CUPS = 1;
 const MOBILE_PATTERN = /^09\d{9}$/;
 const MAX_RECEIPT_BYTES = 5 * 1024 * 1024;
 
-type FieldName = 'contactName' | 'contactMobile' | 'companyName' | 'teamName';
+type FieldName = 'contactName' | 'contactMobile' | 'teamName';
 
 /**
  * The order flow: how many Romanos, who they are for, optionally a receipt.
  *
  * This route is open to everyone. A signed-in customer gets their details
  * filled in from their profile and can still change them — someone ordering for
- * another team should not have to edit their profile to do it. A visitor simply
- * types the same four fields, and gets a token back that keeps the order
- * readable in this browser.
+ * another team should not have to edit their profile to do it. A visitor types
+ * the same fields, and gets a token back that keeps the order readable in this
+ * browser.
+ *
+ * The company is the exception: one company orders today, so it is displayed
+ * rather than asked. It still travels with the order, so the day a second
+ * company appears this becomes a field again and nothing downstream changes.
  *
  * Pricing and the delivery day are decided by the API; the numbers here are for
  * display only.
@@ -38,7 +42,7 @@ type FieldName = 'contactName' | 'contactMobile' | 'companyName' | 'teamName';
 @Component({
   selector: 'app-new-order',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Spinner],
+  imports: [RouterLink, Icon, Spinner, PaymentCard],
   template: `
     <div class="container container--narrow page">
       <h1 class="title">سفارش برای فردا</h1>
@@ -175,25 +179,15 @@ type FieldName = 'contactName' | 'contactMobile' | 'companyName' | 'teamName';
             </div>
 
             <div class="field-grid field-grid--2">
+              <!-- Fixed for now: one company orders today, so this is shown
+                   rather than asked. It still travels with the order. -->
               <div class="field">
-                <label class="field__label" for="companyName">
-                  نام شرکت<span class="field__required" aria-hidden="true">*</span>
-                </label>
-                <input
-                  id="companyName"
-                  class="field__control"
-                  autocomplete="organization"
-                  [value]="companyName()"
-                  (input)="set('companyName', $event)"
-                  (blur)="touch('companyName')"
-                  [attr.aria-invalid]="invalid('companyName') ? 'true' : null"
-                />
-                @if (invalid('companyName')) {
-                  <p class="field__error" role="alert">
-                    <app-icon name="alert" [size]="14" />
-                    نام شرکت را بنویسید.
-                  </p>
-                }
+                <span class="field__label">نام شرکت</span>
+                <p class="field__static">
+                  <app-icon name="building" [size]="16" />
+                  <span>{{ companyName() }}</span>
+                </p>
+                <p class="field__hint">فعلاً سفارش‌ها فقط برای همین شرکت ثبت می‌شود.</p>
               </div>
 
               <div class="field">
@@ -247,6 +241,8 @@ type FieldName = 'contactName' | 'contactMobile' | 'companyName' | 'teamName';
               فعلاً اختیاری است. مدیر پیش از شروع سفارش آن را بررسی می‌کند — بعداً هم می‌توانید از
               صفحهٔ سفارش اضافه‌اش کنید.
             </p>
+
+            <app-payment-card />
 
             <label class="upload" [class.is-set]="receipt() !== null">
               <input
@@ -406,6 +402,21 @@ type FieldName = 'contactName' | 'contactMobile' | 'companyName' | 'teamName';
       }
     }
 
+    /* A field that is shown, not asked — same box as .field__control so the
+       pair still reads as one row, minus the affordances of an input. */
+    .field__static {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      min-height: 48px;
+      padding-inline: var(--space-md);
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-md);
+      background: var(--c-surface-2);
+      color: var(--c-fg);
+      font-weight: 500;
+    }
+
     /* Where it goes */
     .destination {
       display: flex;
@@ -517,7 +528,6 @@ export class NewOrder {
   private readonly touched = signal<Record<FieldName, boolean>>({
     contactName: false,
     contactMobile: false,
-    companyName: false,
     teamName: false,
   });
 
@@ -625,14 +635,13 @@ export class NewOrder {
     const item = this.product();
     if (!item || this.busy()) return;
 
-    const fields: FieldName[] = ['contactName', 'contactMobile', 'companyName', 'teamName'];
+    const fields: FieldName[] = ['contactName', 'contactMobile', 'teamName'];
     const firstInvalid = fields.find((field) => this.fieldError(field));
 
     if (firstInvalid) {
       this.touched.set({
         contactName: true,
         contactMobile: true,
-        companyName: true,
         teamName: true,
       });
       document.getElementById(firstInvalid)?.focus();

@@ -16,6 +16,23 @@ export type UserRole = 'customer' | 'admin';
 /** Everyone is here today. The field is free text so they need not stay. */
 export const DEFAULT_COMPANY_NAME = 'دیجی‌پی';
 
+/**
+ * Where the money goes until an IPG exists. Card-to-card is the whole payment
+ * flow today: the customer transfers, then uploads the receipt.
+ *
+ * Stored unformatted — the grouping is presentation, and what gets copied to the
+ * clipboard is the bare digits, because that is what a banking app accepts.
+ */
+export const PAYMENT_CARD = {
+  holder: 'محمدرضا دهقانی ابیانه',
+  number: '6219861905572805',
+} as const;
+
+/** `6219861905572805` → `6219-8619-0557-2805`. Display only. */
+export function formatCardNumber(number: string): string {
+  return (number.match(/.{1,4}/g) ?? [number]).join('-');
+}
+
 export interface Product {
   id: string;
   slug: string;

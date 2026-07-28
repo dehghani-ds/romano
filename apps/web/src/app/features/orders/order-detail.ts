@@ -10,14 +10,14 @@ import {
 import { RouterLink } from '@angular/router';
 
 import { ORDER_STATUS_META, OrderDetail, OrderStatusHistoryEntry, PAYMENT_STATUS_META, formatDateTime, formatDeliveryDate, formatMoney, pluralCups } from '@romano/domain';
-import { Icon, Spinner, StatusChip, ToastService } from '@romano/ui';
+import { Icon, PaymentCard, Spinner, StatusChip, ToastService } from '@romano/ui';
 
 import { OrdersService } from '../../core/orders.service';
 
 @Component({
   selector: 'app-order-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, StatusChip, Spinner],
+  imports: [RouterLink, Icon, StatusChip, Spinner, PaymentCard],
   template: `
     <div class="container container--narrow page">
       <a routerLink="/orders" class="back">
@@ -115,6 +115,10 @@ import { OrdersService } from '../../core/orders.service';
             }
 
             @if (canUpload()) {
+              @if (payment.status !== 'verified') {
+                <app-payment-card />
+              }
+
               <label class="upload" [class.is-set]="pendingFile() !== null">
                 <input
                   type="file"

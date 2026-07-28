@@ -83,9 +83,19 @@ fi
 if ! command -v pm2 >/dev/null 2>&1; then
   echo "--> installing pm2"
   npm install -g pm2
-  pm2 startup systemd -u root --hp /root >/dev/null
 else
   echo "--> pm2 present: $(pm2 -v | tail -1)"
+fi
+
+# Checked separately from the install: on a box that already had pm2 — this one
+# did — a startup hook nested inside the install branch never runs, and every
+# pm2 app silently fails to come back after a reboot.
+if ! systemctl list-unit-files 2>/dev/null | grep -q '^pm2-root\.service'; then
+  echo "--> registering pm2 boot unit (pm2-root.service)"
+  pm2 startup systemd -u root --hp /root >/dev/null
+  pm2 save
+else
+  echo "--> pm2 boot unit present"
 fi
 
 if ! command -v docker >/dev/null 2>&1; then
