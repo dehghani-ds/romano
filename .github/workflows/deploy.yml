@@ -1,0 +1,200 @@
+name: Deploy
+
+on:
+  push:
+    branches: ['main']
+  workflow_dispatch:
+
+# Never let two deploys rsync into the same directories at once.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  REMOTE_WWW: /var/www/chayinabat
+  REMOTE_API: /var/www/chayinabat-api
+  REMOTE_DB: /var/www/chayinabat-db
+  # 3100, not the repo default of 3000: digfon-api already holds 3000 on this box.
+  API_PORT: 3100
+  # Local end of the SSH tunnel used to run migrations against the server's
+  # Postgres, which listens on 127.0.0.1 only.
+  DB_TUNNEL_PORT: 55432
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      # The client is committed under apps/api/src/generated/prisma and compiled
+      # with the app, but regenerate anyway so a stale commit cannot ship.
+      - name: Generate Prisma Client
+        run: npm run db:generate
+
+      # Not in digfon's pipeline. It is here because OrdersService carries the
+      # order-lifecycle guarantees that used to be Postgres row level security —
+      # see CLAUDE.md. A red test must not reach production.
+      - name: Test
+        run: npx nx run-many -t test
+
+      - name: Build
+        run: npx nx run-many -t build
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Verify server prerequisites
+        run: |
+          ssh "${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}" bash -euo pipefail <<'EOF'
+          missing=""
+          for c in node npm pm2 docker; do
+            command -v "$c" >/dev/null 2>&1 || missing="$missing $c"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Server is missing:$missing — run ./deploy/provision.sh <host> once before deploying."
+            exit 1
+          fi
+          if [ ! -f /etc/nginx/sites-enabled/chayinabat ]; then
+            echo "::error::nginx vhost absent — run ./deploy/provision.sh <host> once before deploying."
+            exit 1
+          fi
+          EOF
+
+      - name: Create Remote Directories
+        run: |
+          ssh "${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}" \
+            "mkdir -p ${{ env.REMOTE_WWW }}/web ${{ env.REMOTE_WWW }}/admin ${{ env.REMOTE_API }} ${{ env.REMOTE_DB }}"
+
+      - name: Deploy Web
+        run: rsync -avz --delete dist/apps/web/browser/ "${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}:${{ env.REMOTE_WWW }}/web/"
+
+      - name: Deploy Dashboard
+        run: rsync -avz --delete dist/apps/dashboard/browser/ "${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}:${{ env.REMOTE_WWW }}/admin/"
+
+      - name: Deploy API
+        run: |
+          TARGET="${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}"
+          # --delete is deliberately omitted: node_modules and uploads live here.
+          rsync -avz dist/apps/api/ "$TARGET:${{ env.REMOTE_API }}/"
+          # Must come after the dist rsync: dist/apps/api ships its own tiny
+          # package.json, and the root manifest is the one `npm ci` needs.
+          rsync -avz package.json package-lock.json "$TARGET:${{ env.REMOTE_API }}/"
+
+      - name: Deploy Database Config
+        run: |
+          rsync -avz deploy/docker-compose.prod.yml \
+            "${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}:${{ env.REMOTE_DB }}/docker-compose.yml"
+
+      - name: Create Environment File on Server
+        run: |
+          ssh "${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}" \
+            "umask 077 && cat > ${{ env.REMOTE_API }}/.env" <<EOF
+          DATABASE_URL="${{ secrets.DATABASE_URL }}"
+          JWT_SECRET="${{ secrets.JWT_SECRET }}"
+          API_PORT=${{ env.API_PORT }}
+          CORS_ORIGINS="https://chayinabat.ir,https://admin.chayinabat.ir"
+          UPLOAD_DIR="${{ env.REMOTE_API }}/uploads"
+          EOF
+
+      - name: Start Database
+        run: |
+          ssh "${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}" \
+            "cd ${{ env.REMOTE_DB }} && POSTGRES_PASSWORD='${{ secrets.POSTGRES_PASSWORD }}' docker compose up -d postgres"
+
+      # Postgres is published on 127.0.0.1 only, so migrations run from here over
+      # a tunnel. The alternative — running Prisma on the server — would mean
+      # installing the CLI there, and it is a devDependency the server does not get.
+      - name: Apply Migrations
+        env:
+          # Kept in the environment rather than interpolated into the script: a
+          # password containing a quote would otherwise break the shell, and one
+          # containing @ or / would break a naive URL rewrite.
+          REMOTE_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          ssh -f -N -o ExitOnForwardFailure=yes \
+            -L ${{ env.DB_TUNNEL_PORT }}:127.0.0.1:5432 \
+            "${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}"
+
+          for i in $(seq 1 20); do
+            (exec 3<>/dev/tcp/127.0.0.1/${{ env.DB_TUNNEL_PORT }}) 2>/dev/null && break
+            sleep 3
+          done
+
+          # urlsplit/urlunsplit swaps only the netloc host:port, leaving the
+          # userinfo and the query string exactly as they were.
+          TUNNELED=$(python3 - <<'PY'
+          import os
+          from urllib.parse import urlsplit, urlunsplit
+          u = urlsplit(os.environ["REMOTE_DATABASE_URL"])
+          # An unencoded / or ? in the password would have been parsed as the
+          # start of the path or query, and the rewrite would silently point at
+          # the wrong database. Percent-encode it — Prisma requires that anyway.
+          if u.path.strip("/") != "romano":
+              raise SystemExit(
+                  f"::error::DATABASE_URL parsed to database {u.path.strip('/')!r}, expected "
+                  "'romano'. Percent-encode any /, ?, # or @ in the password."
+              )
+          userinfo = u.netloc.rpartition("@")[0]
+          host = "127.0.0.1:" + os.environ["DB_TUNNEL_PORT"]
+          print(urlunsplit(u._replace(netloc=f"{userinfo}@{host}" if userinfo else host)))
+          PY
+          )
+          DATABASE_URL="$TUNNELED" npx prisma migrate deploy
+
+      - name: Install API Dependencies on Server
+        run: |
+          ssh "${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}" bash -euo pipefail <<'EOF'
+          cd /var/www/chayinabat-api
+          # --omit=dev: the generated Prisma client is already compiled into
+          # src/generated, so nothing here needs the Prisma CLI or a toolchain.
+          npm ci --omit=dev
+          EOF
+
+      - name: Restart Services
+        run: |
+          ssh "${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}" bash -euo pipefail <<'EOF'
+          cd /var/www/chayinabat-api
+          pm2 restart chayinabat-api --update-env \
+            || pm2 start src/main.js --name chayinabat-api --cwd /var/www/chayinabat-api
+          pm2 save
+          # Static assets are read by nginx (www-data); receipts are written by the API.
+          chown -R www-data:www-data /var/www/chayinabat
+          EOF
+
+      - name: Health check
+        run: |
+          ssh "${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}" bash -euo pipefail <<'EOF'
+          fail=0
+          for i in $(seq 1 20); do
+            api=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3100/api || true)
+            [ "$api" != "000" ] && break
+            sleep 3
+          done
+          web=$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: chayinabat.ir' http://127.0.0.1/ || true)
+          admin=$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: admin.chayinabat.ir' http://127.0.0.1/ || true)
+          echo "api=$api web=$web admin=$admin"
+          [ "$api" = "000" ] && { echo "::error::API not responding on :3100"; fail=1; }
+          [ "$web" = "301" ] || [ "$web" = "200" ] || { echo "::error::Web vhost returned $web"; fail=1; }
+          [ "$admin" = "301" ] || [ "$admin" = "200" ] || { echo "::error::Admin vhost returned $admin"; fail=1; }
+          if [ "$fail" = "1" ]; then
+            pm2 logs chayinabat-api --lines 40 --nostream || true
+            exit 1
+          fi
+          echo "All services responding."
+          EOF

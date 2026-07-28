@@ -1,0 +1,35 @@
+# Production Postgres for Romano, deployed to /var/www/chayinabat-db.
+#
+# Not the same file as the repo-root docker-compose.yml, which is a local
+# convenience with a throwaway password and an open port. Two differences matter
+# on a public host:
+#
+#   1. The port is published on 127.0.0.1 only. The API reaches it over the
+#      loopback; CI reaches it over an SSH tunnel (see deploy.yml).
+#   2. The password comes from the environment, never from this file.
+#
+#   POSTGRES_PASSWORD=... docker compose up -d postgres
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: chayinabat-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: romano
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_DB: romano
+      # The app writes Jalali dates and reasons about "tomorrow" in Tehran.
+      TZ: Asia/Tehran
+      PGTZ: Asia/Tehran
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - romano-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U romano -d romano']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  romano-pgdata:
