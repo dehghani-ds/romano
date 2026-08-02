@@ -23,7 +23,7 @@ async function main(): Promise<void> {
       name: 'رومانو',
       description:
         'اسپرسوی کوتاه و روشن، با یک برش لیمو روی لبهٔ فنجان. هر فنجان صبح فردا تازه دم می‌شود.',
-      price: 45000,
+      price: 129900,
       currency: 'IRR',
       isActive: true,
       sortOrder: 0,
@@ -33,7 +33,7 @@ async function main(): Promise<void> {
       name: 'رومانو',
       description:
         'اسپرسوی کوتاه و روشن، با یک برش لیمو روی لبهٔ فنجان. هر فنجان صبح فردا تازه دم می‌شود.',
-      price: 45000,
+      price: 129900,
       currency: 'IRR',
       sortOrder: 0,
     },
