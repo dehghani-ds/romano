@@ -3,12 +3,13 @@ import { RouterOutlet } from '@angular/router';
 
 import { CitrusBackdrop, ToastHost } from '@romano/ui';
 
+import { Footer } from './layout/footer';
 import { Header } from './layout/header';
 
 @Component({
   selector: 'app-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, Header, CitrusBackdrop, ToastHost],
+  imports: [RouterOutlet, Header, Footer, CitrusBackdrop, ToastHost],
   template: `
     <a class="skip-link" href="#main">رفتن به محتوای اصلی</a>
     <app-citrus-backdrop />
@@ -16,6 +17,7 @@ import { Header } from './layout/header';
     <main id="main" tabindex="-1">
       <router-outlet />
     </main>
+    <app-footer />
     <app-toast-host />
   `,
   styles: `
