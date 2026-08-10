@@ -17,6 +17,7 @@ import {
   CURRENCY_PATTERN,
   FIELD_ERRORS,
   MAX_PRODUCT_PRICE,
+  MAX_UNIT_LENGTH,
   MIN_PRODUCT_PRICE,
   PRODUCT_SLUG_PATTERN,
 } from '../common/validation';
@@ -60,6 +61,14 @@ export class CreateProductDto {
   @trim()
   @Matches(CURRENCY_PATTERN, { message: FIELD_ERRORS.productCurrency })
   currency?: string;
+
+  /** فنجان, عدد, بسته — free text, because the list is not ours to fix. */
+  @IsOptional()
+  @emptyToUndefined()
+  @trim()
+  @IsString()
+  @Length(1, MAX_UNIT_LENGTH, { message: FIELD_ERRORS.productUnit })
+  unit?: string;
 
   @IsOptional()
   @emptyToUndefined()

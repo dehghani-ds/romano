@@ -19,6 +19,7 @@ type ProductRow = {
   description: string | null;
   price: Prisma.Decimal;
   currency: string;
+  unit: string;
   imageUrl: string | null;
   isActive: boolean;
   sortOrder: number;
@@ -34,6 +35,7 @@ function row(overrides: Partial<ProductRow> = {}): ProductRow {
     description: null,
     price: new Prisma.Decimal(129900),
     currency: 'IRR',
+    unit: 'فنجان',
     imageUrl: null,
     isActive: true,
     sortOrder: 0,
@@ -82,6 +84,7 @@ describe('ProductsService.create', () => {
 
     const { data } = create.mock.calls[0][0];
     expect(data['currency']).toBe('IRR');
+    expect(data['unit']).toBe('فنجان');
     expect(data['isActive']).toBe(true);
     expect(data['sortOrder']).toBe(0);
     expect(data['description']).toBeNull();
@@ -95,6 +98,7 @@ describe('ProductsService.create', () => {
       ...minimal,
       description: 'شیر و اسپرسو',
       currency: 'USD',
+      unit: 'عدد',
       imageUrl: 'https://cdn.example.com/latte.png',
       isActive: false,
       sortOrder: 7,
@@ -103,6 +107,7 @@ describe('ProductsService.create', () => {
     const { data } = create.mock.calls[0][0];
     expect(data['description']).toBe('شیر و اسپرسو');
     expect(data['currency']).toBe('USD');
+    expect(data['unit']).toBe('عدد');
     expect(data['imageUrl']).toBe('https://cdn.example.com/latte.png');
     expect(data['isActive']).toBe(false);
     expect(data['sortOrder']).toBe(7);

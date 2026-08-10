@@ -1,5 +1,8 @@
 import { Transform, Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
   IsBoolean,
   IsIn,
   IsInt,
@@ -12,11 +15,13 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateNested,
 } from 'class-validator';
 
 import { OrderStatus } from '../generated/prisma/enums';
 import {
   FIELD_ERRORS,
+  MAX_BASKET_LINES,
   MAX_QUANTITY,
   MIN_QUANTITY,
   MOBILE_PATTERN,
@@ -33,7 +38,8 @@ const trim = () => Transform(({ value }) => (typeof value === 'string' ? value.t
  * service knows whether the caller is a guest, so that check lives there and
  * this DTO validates shape only.
  */
-export class PlaceOrderDto {
+/** One basket line. Quantity is capped per line, not across the basket. */
+export class OrderLineDto {
   @IsUUID('all', { message: FIELD_ERRORS.productId })
   productId!: string;
 
@@ -42,6 +48,15 @@ export class PlaceOrderDto {
   @Min(MIN_QUANTITY, { message: FIELD_ERRORS.quantity })
   @Max(MAX_QUANTITY, { message: FIELD_ERRORS.quantity })
   quantity!: number;
+}
+
+export class PlaceOrderDto {
+  @IsArray({ message: FIELD_ERRORS.basketEmpty })
+  @ArrayMinSize(1, { message: FIELD_ERRORS.basketEmpty })
+  @ArrayMaxSize(MAX_BASKET_LINES, { message: FIELD_ERRORS.basketTooManyLines })
+  @ValidateNested({ each: true })
+  @Type(() => OrderLineDto)
+  items!: OrderLineDto[];
 
   @IsOptional()
   @trim()

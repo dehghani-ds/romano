@@ -8,7 +8,6 @@ import {
   OrderStatus,
   formatDeliveryDate,
   formatNumber,
-  pluralCups,
   tomorrowIso,
 } from '@romano/domain';
 import { Icon } from '@romano/ui';
@@ -41,7 +40,8 @@ import { AdminOrdersService } from '../../core/admin-orders.service';
           <span class="highlight__icon"><app-icon name="coffee" [size]="24" /></span>
           <div>
             <p class="muted text-sm">برای فردا باید آماده شود</p>
-            <p class="highlight__value numeric">{{ cups(s.tomorrow.cups) }}</p>
+            <!-- A plain count: tomorrow's orders can mix فنجان with عدد. -->
+            <p class="highlight__value numeric">{{ number(s.tomorrow.quantity) }} مورد</p>
             <p class="muted text-sm">
               در {{ number(s.tomorrow.orders) }} سفارش تأییدشده و در انتظار
             </p>
@@ -157,7 +157,6 @@ export class StatsPage {
   protected readonly stats = signal<AdminStats | null>(null);
 
   protected readonly number = formatNumber;
-  protected readonly cups = pluralCups;
 
   constructor() {
     void this.load();

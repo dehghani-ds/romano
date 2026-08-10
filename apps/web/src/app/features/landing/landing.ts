@@ -18,7 +18,7 @@ import { AuthService } from '../../core/auth.service';
         <p class="eyebrow">یک قهوه. امروز سفارش، فردا آماده.</p>
         <h1 class="display">یک رومانوی درست و حسابی،<br />منتظر شماست.</h1>
         <p class="lede muted">
-          فنجان‌هایتان را پیش از رفتن سفارش بدهید. فردا صبح سر تیمتان تحویل داده می‌شوند.
+          سبدتان را پیش از رفتن ببندید. فردا صبح سر تیمتان تحویل داده می‌شود.
         </p>
 
         <!-- One primary CTA, and it never asks for an account first. -->
@@ -36,8 +36,8 @@ import { AuthService } from '../../core/auth.service';
         <li class="benefit">
           <span class="benefit__icon"><app-icon name="coffee" [size]="20" /></span>
           <div>
-            <h2 class="benefit__title">تعداد فنجان را انتخاب کنید</h2>
-            <p class="muted text-sm">از یک تا بیست رومانو، صبح تازه دم می‌شود.</p>
+            <h2 class="benefit__title">سبدتان را ببندید</h2>
+            <p class="muted text-sm">قهوه و خوراکی کنارش — هر کدام تا بیست تا.</p>
           </div>
         </li>
         <li class="benefit">

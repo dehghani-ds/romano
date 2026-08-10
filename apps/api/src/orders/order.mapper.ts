@@ -14,6 +14,7 @@ export interface OrderItemView {
   productId: string;
   productName: string;
   quantity: number;
+  unit: string;
   unitPrice: number;
   lineTotal: number;
 }
@@ -53,7 +54,7 @@ export interface OrderDetail {
   updatedAt: string;
 
   items: OrderItemView[];
-  totalCups: number;
+  totalQuantity: number;
   productNames: string;
   payment: OrderPaymentView | null;
 }
@@ -79,6 +80,7 @@ export function toOrderDetail(order: OrderWithDetail): OrderDetail {
     productId: item.productId,
     productName: item.product.name,
     quantity: item.quantity,
+    unit: item.unit,
     unitPrice: item.unitPrice.toNumber(),
     lineTotal: item.unitPrice.mul(item.quantity).toNumber(),
   }));
@@ -108,7 +110,7 @@ export function toOrderDetail(order: OrderWithDetail): OrderDetail {
     updatedAt: order.updatedAt.toISOString(),
 
     items,
-    totalCups: items.reduce((sum, item) => sum + item.quantity, 0),
+    totalQuantity: items.reduce((sum, item) => sum + item.quantity, 0),
     productNames: items
       .map((item) => item.productName)
       .sort((a, b) => a.localeCompare(b, 'fa'))

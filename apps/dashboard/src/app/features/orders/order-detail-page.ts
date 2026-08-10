@@ -4,13 +4,14 @@ import { RouterLink } from '@angular/router';
 import {
   ORDER_STATUS_META,
   OrderDetail,
+  OrderItem,
   OrderStatus,
   OrderStatusHistoryEntry,
   PAYMENT_STATUS_META,
   formatDateTime,
   formatDeliveryDate,
   formatMoney,
-  pluralCups,
+  formatQuantity,
 } from '@romano/domain';
 import { Icon, Spinner, StatusChip, ToastService } from '@romano/ui';
 
@@ -73,9 +74,21 @@ import { AdminOrdersService } from '../../core/admin-orders.service';
               <dt class="muted">محل تحویل</dt>
               <dd>{{ o.companyName }} — {{ o.teamName }}</dd>
             </div>
-            <div class="row">
-              <dt class="muted">قهوه</dt>
-              <dd>{{ o.productNames || 'رومانو' }} · {{ cups(o.totalCups) }}</dd>
+            <div class="row row--items">
+              <dt class="muted">سبد</dt>
+              <dd>
+                <ul class="items">
+                  @for (item of o.items; track item.productId) {
+                    <li class="item">
+                      <span>{{ item.productName }}</span>
+                      <span class="muted text-sm">{{ quantity(item) }}</span>
+                      <span class="item__total numeric">
+                        {{ money(item.lineTotal, o.currency) }}
+                      </span>
+                    </li>
+                  }
+                </ul>
+              </dd>
             </div>
             @if (o.notes) {
               <div class="row">
@@ -203,6 +216,29 @@ import { AdminOrdersService } from '../../core/admin-orders.service';
     </div>
   `,
   styles: `
+    .row--items dd {
+      width: 100%;
+    }
+
+    .items {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: var(--space-xs);
+      width: 100%;
+    }
+
+    .item {
+      display: flex;
+      align-items: baseline;
+      gap: var(--space-sm);
+    }
+
+    .item__total {
+      margin-inline-start: auto;
+    }
+
     .back {
       display: inline-flex;
       align-items: center;
@@ -353,7 +389,10 @@ export class OrderDetailPage {
   protected readonly date = formatDeliveryDate;
   protected readonly dateTime = formatDateTime;
   protected readonly money = formatMoney;
-  protected readonly cups = pluralCups;
+  /** Each line keeps the unit it was ordered with. */
+  protected quantity(item: OrderItem): string {
+    return formatQuantity(item.quantity, item.unit);
+  }
 
   protected readonly statusMeta = computed(
     () => ORDER_STATUS_META[this.order()?.status ?? 'pending'],

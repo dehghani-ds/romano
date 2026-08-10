@@ -6,7 +6,7 @@ import type { Product } from '@romano/domain';
 
 import { apiUrl, toUserMessage } from './api';
 
-/** The menu. One product today; the API already returns a list. */
+/** The menu — every active product, in the order the admin sorted them. */
 @Injectable({ providedIn: 'root' })
 export class CatalogService {
   private readonly http = inject(HttpClient);
@@ -21,10 +21,5 @@ export class CatalogService {
     } catch (error) {
       throw new Error(toUserMessage(error));
     }
-  }
-
-  async featuredProduct(): Promise<Product | null> {
-    const products = await this.products();
-    return products.find((product) => product.slug === 'romano') ?? products[0] ?? null;
   }
 }

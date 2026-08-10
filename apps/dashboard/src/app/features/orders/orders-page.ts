@@ -9,7 +9,7 @@ import {
   formatDeliveryDate,
   formatMoney,
   formatNumber,
-  pluralCups,
+  formatQuantityBreakdown,
   tomorrowIso,
 } from '@romano/domain';
 import { EmptyState, Icon, StatusChip, ToastService } from '@romano/ui';
@@ -125,7 +125,7 @@ type StatusFilter = OrderStatus | 'all';
                 <th scope="col">سفارش</th>
                 <th scope="col">مشتری</th>
                 <th scope="col">تحویل</th>
-                <th scope="col">فنجان</th>
+                <th scope="col">تعداد</th>
                 <th scope="col">پرداخت</th>
                 <th scope="col">وضعیت</th>
                 <th scope="col"><span class="visually-hidden">کارها</span></th>
@@ -149,7 +149,7 @@ type StatusFilter = OrderStatus | 'all';
                       <span class="muted text-sm">{{ destination(order) }}</span>
                     </span>
                   </td>
-                  <td class="numeric">{{ number(order.totalCups) }}</td>
+                  <td class="numeric">{{ number(order.totalQuantity) }}</td>
                   <td>
                     <span class="text-sm">{{ paymentLabel(order) }}</span>
                   </td>
@@ -190,7 +190,7 @@ type StatusFilter = OrderStatus | 'all';
                   <dt class="muted">تحویل</dt>
                   <dd>{{ date(order.deliveryDate) }} · {{ destination(order) }}</dd>
                 </div>
-                <div><dt class="muted">فنجان</dt><dd class="numeric">{{ cups(order.totalCups) }}</dd></div>
+                <div><dt class="muted">تعداد</dt><dd>{{ quantities(order) }}</dd></div>
                 <div><dt class="muted">پرداخت</dt><dd>{{ paymentLabel(order) }}</dd></div>
                 <div><dt class="muted">مبلغ</dt><dd class="numeric">{{ money(order.totalAmount, order.currency) }}</dd></div>
               </dl>
@@ -438,7 +438,10 @@ export class OrdersPage {
 
   protected readonly date = formatDeliveryDate;
   protected readonly money = formatMoney;
-  protected readonly cups = pluralCups;
+  /** `۲ فنجان · ۳ عدد` when an order mixes kinds; a plain count when it does not. */
+  protected quantities(order: OrderDetail): string {
+    return formatQuantityBreakdown(order.items);
+  }
   protected readonly number = formatNumber;
 
   private searchTimer: ReturnType<typeof setTimeout> | null = null;

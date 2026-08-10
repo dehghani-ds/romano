@@ -930,6 +930,7 @@ export const ProductScalarFieldEnum = {
   description: 'description',
   price: 'price',
   currency: 'currency',
+  unit: 'unit',
   imageUrl: 'imageUrl',
   isActive: 'isActive',
   sortOrder: 'sortOrder',
@@ -972,6 +973,7 @@ export const OrderItemScalarFieldEnum = {
   productId: 'productId',
   quantity: 'quantity',
   unitPrice: 'unitPrice',
+  unit: 'unit',
   createdAt: 'createdAt'
 } as const
 

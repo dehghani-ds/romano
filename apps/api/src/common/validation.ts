@@ -11,8 +11,12 @@ export const PRODUCT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const CURRENCY_PATTERN = /^[A-Z]{3}$/;
 
 export const MIN_PASSWORD_LENGTH = 8;
+/** Per basket line, not per order — twenty coffees *and* twenty cookies is fine. */
 export const MAX_QUANTITY = 20;
 export const MIN_QUANTITY = 1;
+/** A basket holds one line per product; this caps how many distinct products. */
+export const MAX_BASKET_LINES = 20;
+export const MAX_UNIT_LENGTH = 16;
 
 /**
  * `products.price` is `Decimal(12, 2)`, so the column itself stops at
@@ -25,6 +29,9 @@ export const MIN_PRODUCT_PRICE = 0;
 /** Everyone is here today. The column is free text so they need not stay. */
 export const DEFAULT_COMPANY_NAME = 'دیجی‌پی';
 
+/** Matches the `products.unit` column default. */
+export const DEFAULT_UNIT = 'فنجان';
+
 export const FIELD_ERRORS = {
   username: 'نام کاربری باید ۳ تا ۳۰ نویسه و فقط شامل حروف انگلیسی، عدد و زیرخط باشد.',
   password: 'رمز عبور باید دست‌کم ۸ نویسه باشد.',
@@ -34,7 +41,9 @@ export const FIELD_ERRORS = {
   companyName: 'نام شرکت را بنویسید.',
   teamName: 'نام تیم خود را بنویسید.',
   productId: 'محصولی انتخاب نشده است.',
-  quantity: 'تعداد فنجان باید بین ۱ تا ۲۰ باشد.',
+  quantity: 'تعداد هر مورد باید بین ۱ تا ۲۰ باشد.',
+  basketEmpty: 'سبد شما خالی است. دست‌کم یک محصول انتخاب کنید.',
+  basketTooManyLines: 'در هر سفارش حداکثر ۲۰ محصول متفاوت می‌گنجد.',
   notes: 'یادداشت نباید بیشتر از ۵۰۰ نویسه باشد.',
   orderNumber: 'شمارهٔ سفارش را بنویسید.',
   status: 'وضعیت انتخاب‌شده معتبر نیست.',
@@ -45,6 +54,7 @@ export const FIELD_ERRORS = {
   productName: 'نام محصول را بنویسید (۱ تا ۸۰ نویسه).',
   productDescription: 'توضیح محصول نباید بیشتر از ۵۰۰ نویسه باشد.',
   productPrice: 'قیمت را به ریال و به صورت عدد بنویسید — بیشتر از صفر و کمتر از ۱۰۰٬۰۰۰٬۰۰۰.',
+  productUnit: 'واحد شمارش را کوتاه بنویسید — مثل فنجان، عدد یا بسته.',
   productCurrency: 'واحد پول باید یک کد سه‌حرفی مثل IRR باشد.',
   productImageUrl: 'نشانی تصویر باید یک آدرس کامل با http یا https باشد.',
   productSortOrder: 'ترتیب نمایش باید عددی بین ۰ تا ۹۹۹ باشد.',
