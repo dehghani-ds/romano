@@ -167,6 +167,24 @@ export interface CreateProductRequest {
   sortOrder?: number;
 }
 
+/**
+ * Editing a product. Every field is optional and absence means "leave it" —
+ * `description` and `imageUrl` take `null` to clear them.
+ *
+ * `slug` is missing on purpose: it identifies the product in a URL and does not
+ * change once the product exists.
+ */
+export interface UpdateProductRequest {
+  name?: string;
+  price?: number;
+  description?: string | null;
+  currency?: string;
+  unit?: string;
+  imageUrl?: string | null;
+  isActive?: boolean;
+  sortOrder?: number;
+}
+
 export interface SignUpDetails {
   username: string;
   password: string;

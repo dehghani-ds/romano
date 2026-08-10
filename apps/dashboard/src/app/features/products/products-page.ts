@@ -1,10 +1,11 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import {
   CreateProductRequest,
   DEFAULT_UNIT,
   Product,
+  UpdateProductRequest,
   formatMoney,
   formatNumber,
 } from '@romano/domain';
@@ -16,11 +17,29 @@ import { AdminProductsService } from '../../core/admin-products.service';
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const MAX_PRICE = 100_000_000;
 
+/** What the form holds — the same fields whether it is adding or editing. */
+interface FormValue {
+  name: string;
+  slug: string;
+  price: number;
+  unit: string;
+  sortOrder: number;
+  description: string;
+  imageUrl: string;
+  isActive: boolean;
+}
+
 /**
- * Products: what is on sale, and the form that adds to it.
+ * Products: what is on sale, and the form that adds to it or changes one.
  *
  * The schema has been multi-product from the start — Romano was simply the only
  * row. Adding the second one is this form, not a migration.
+ *
+ * One form, two modes. Editing points it at a row instead of opening a second
+ * form or a modal: the fields are identical, the page stays one column, and the
+ * row being edited is tinted so the form's heading is never the only clue.
+ * Everything is editable except the slug, which is the product's identity in a
+ * URL and is promised, in the form itself, not to change.
  *
  * Listed twice like the order queue: a table from 768px up, cards below it.
  */
@@ -41,11 +60,16 @@ const MAX_PRICE = 100_000_000;
         </button>
       </div>
 
-      <!-- Add ----------------------------------------------------------- -->
-      <section class="card form-card">
+      <!-- Add / edit ------------------------------------------------------ -->
+      <section class="card form-card" id="product-form">
         <h2 class="section-title">
-          <app-icon name="plus" [size]="18" />
-          افزودن محصول
+          @if (editing(); as product) {
+            <app-icon name="pencil" [size]="18" />
+            ویرایش «{{ product.name }}»
+          } @else {
+            <app-icon name="plus" [size]="18" />
+            افزودن محصول
+          }
         </h2>
 
         @if (formError(); as message) {
@@ -88,6 +112,7 @@ const MAX_PRICE = 100_000_000;
                 autocapitalize="none"
                 spellcheck="false"
                 placeholder="cafe-latte"
+                [readOnly]="isEditing()"
                 [attr.aria-invalid]="invalid('slug') ? 'true' : null"
               />
               @if (invalid('slug')) {
@@ -95,6 +120,8 @@ const MAX_PRICE = 100_000_000;
                   <app-icon name="alert" [size]="14" />
                   فقط حروف کوچک انگلیسی، عدد و خط تیره — مثل cafe-latte.
                 </p>
+              } @else if (isEditing()) {
+                <p class="field__hint">شناسه پس از ساخت عوض نمی‌شود.</p>
               } @else {
                 <p class="field__hint">در نشانی‌ها به کار می‌رود و بعداً عوض نمی‌شود.</p>
               }
@@ -216,9 +243,14 @@ const MAX_PRICE = 100_000_000;
           <label class="check">
             <input type="checkbox" formControlName="isActive" />
             <span>
-              همین حالا در دسترس مشتری باشد
+              در دسترس مشتری باشد
               <span class="muted text-sm block">
-                اگر خاموش باشد، محصول ساخته می‌شود ولی در سایت دیده نمی‌شود.
+                @if (isEditing()) {
+                  اگر خاموش شود، محصول از سایت برداشته می‌شود — سفارش‌های ثبت‌شده سر جای
+                  خودشان می‌مانند.
+                } @else {
+                  اگر خاموش باشد، محصول ساخته می‌شود ولی در سایت دیده نمی‌شود.
+                }
               </span>
             </span>
           </label>
@@ -226,19 +258,32 @@ const MAX_PRICE = 100_000_000;
           <div class="form-actions">
             <button type="submit" class="btn btn--primary btn--lg" [disabled]="saving()">
               @if (saving()) {
-                <app-spinner [size]="18" label="در حال ثبت" />
+                <app-spinner [size]="18" [label]="isEditing() ? 'در حال ذخیره' : 'در حال ثبت'" />
+              } @else if (isEditing()) {
+                ذخیره تغییرات
               } @else {
                 افزودن محصول
               }
             </button>
-            <button
-              type="button"
-              class="btn btn--ghost"
-              (click)="resetForm()"
-              [disabled]="saving()"
-            >
-              پاک کردن فرم
-            </button>
+            @if (isEditing()) {
+              <button
+                type="button"
+                class="btn btn--ghost"
+                (click)="cancelEdit()"
+                [disabled]="saving()"
+              >
+                انصراف
+              </button>
+            } @else {
+              <button
+                type="button"
+                class="btn btn--ghost"
+                (click)="resetForm()"
+                [disabled]="saving()"
+              >
+                پاک کردن فرم
+              </button>
+            }
           </div>
         </form>
       </section>
@@ -274,11 +319,12 @@ const MAX_PRICE = 100_000_000;
                 <th scope="col">واحد</th>
                 <th scope="col">ترتیب</th>
                 <th scope="col">وضعیت</th>
+                <th scope="col"><span class="visually-hidden">کارها</span></th>
               </tr>
             </thead>
             <tbody>
               @for (product of products(); track product.id) {
-                <tr>
+                <tr [class.row--editing]="isEditingProduct(product)">
                   <td>{{ product.name }}</td>
                   <td><span class="code muted">{{ product.slug }}</span></td>
                   <td class="numeric">{{ money(product) }}</td>
@@ -290,6 +336,17 @@ const MAX_PRICE = 100_000_000;
                       {{ product.isActive ? 'در دسترس' : 'غیرفعال' }}
                     </span>
                   </td>
+                  <td class="cell-action">
+                    <button
+                      type="button"
+                      class="btn btn--ghost btn--sm"
+                      [attr.aria-label]="'ویرایش ' + product.name"
+                      (click)="edit(product)"
+                    >
+                      <app-icon name="pencil" [size]="16" />
+                      ویرایش
+                    </button>
+                  </td>
                 </tr>
               }
             </tbody>
@@ -298,7 +355,7 @@ const MAX_PRICE = 100_000_000;
 
         <ul class="cards">
           @for (product of products(); track product.id) {
-            <li class="card product-card">
+            <li class="card product-card" [class.product-card--editing]="isEditingProduct(product)">
               <div class="product-card__top">
                 <span class="product-card__name">{{ product.name }}</span>
                 <span class="avail" [class.avail--off]="!product.isActive">
@@ -320,6 +377,15 @@ const MAX_PRICE = 100_000_000;
                   <dd class="numeric">{{ number(product.sortOrder) }}</dd>
                 </div>
               </dl>
+              <button
+                type="button"
+                class="btn btn--secondary btn--sm product-card__edit"
+                [attr.aria-label]="'ویرایش ' + product.name"
+                (click)="edit(product)"
+              >
+                <app-icon name="pencil" [size]="16" />
+                ویرایش
+              </button>
             </li>
           }
         </ul>
@@ -450,6 +516,17 @@ const MAX_PRICE = 100_000_000;
       border-bottom: 0;
     }
 
+    /* The row being edited is the one the form above belongs to — tint plus the
+       heading naming the product, never the tint alone. */
+    .table tbody tr.row--editing {
+      background: var(--c-primary-tint);
+    }
+
+    .cell-action {
+      text-align: end;
+      white-space: nowrap;
+    }
+
     .product-card__top {
       display: flex;
       align-items: center;
@@ -460,6 +537,11 @@ const MAX_PRICE = 100_000_000;
 
     .product-card__name {
       font-weight: 600;
+    }
+
+    .product-card--editing {
+      border-color: var(--c-primary);
+      background: var(--c-primary-tint);
     }
 
     .product-card__rows {
@@ -477,6 +559,10 @@ const MAX_PRICE = 100_000_000;
         margin: 0;
       }
     }
+
+    .product-card__edit {
+      margin-block-start: var(--space-md);
+    }
   `,
 })
 export class ProductsPage {
@@ -492,6 +578,14 @@ export class ProductsPage {
   protected readonly saving = signal(false);
   protected readonly listError = signal<string | null>(null);
   protected readonly formError = signal<string | null>(null);
+
+  /**
+   * The product the form is currently pointed at, or null while it is an add
+   * form. One form serves both: the fields are the same ones, and a second copy
+   * of them would be a second place for the two to drift apart.
+   */
+  protected readonly editing = signal<Product | null>(null);
+  protected readonly isEditing = computed(() => this.editing() !== null);
 
   protected readonly form = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(80)]],
@@ -552,6 +646,40 @@ export class ProductsPage {
     return formatNumber(value);
   }
 
+  protected isEditingProduct(product: Product): boolean {
+    return this.editing()?.id === product.id;
+  }
+
+  /** Points the form at an existing product and takes the admin to it. */
+  protected edit(product: Product): void {
+    this.editing.set(product);
+    this.formError.set(null);
+    this.form.reset({
+      name: product.name,
+      slug: product.slug,
+      price: product.price,
+      unit: product.unit,
+      sortOrder: product.sortOrder,
+      description: product.description ?? '',
+      imageUrl: product.imageUrl ?? '',
+      isActive: product.isActive,
+    });
+
+    // The form sits above the list, so on a phone the row that was just tapped
+    // is nowhere near it. Focus lands on the first field either way; the scroll
+    // is the part that has to respect reduced motion.
+    const smooth = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document
+      .getElementById('product-form')
+      ?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
+    document.getElementById('name')?.focus({ preventScroll: true });
+  }
+
+  protected cancelEdit(): void {
+    this.editing.set(null);
+    this.resetForm();
+  }
+
   protected resetForm(): void {
     this.form.reset({
       name: '',
@@ -577,8 +705,38 @@ export class ProductsPage {
     }
 
     const raw = this.form.getRawValue();
-    // The API rejects unknown keys and empty strings alike — send only what was
-    // filled in, and let the column defaults cover the rest.
+    const target = this.editing();
+
+    this.saving.set(true);
+    try {
+      if (target) {
+        const patch = this.patchAgainst(target, raw);
+        if (Object.keys(patch).length === 0) {
+          this.toast.info('چیزی تغییر نکرده بود.');
+          this.cancelEdit();
+          return;
+        }
+        const product = await this.api.update(target.id, patch);
+        this.toast.success(`«${product.name}» ذخیره شد.`);
+        this.cancelEdit();
+      } else {
+        const product = await this.api.create(this.newProduct(raw));
+        this.toast.success(`«${product.name}» اضافه شد.`);
+        this.resetForm();
+      }
+      await this.reload();
+    } catch (error) {
+      this.formError.set((error as Error).message);
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  /**
+   * The API rejects unknown keys and empty strings alike — send only what was
+   * filled in, and let the column defaults cover the rest.
+   */
+  private newProduct(raw: FormValue): CreateProductRequest {
     const payload: CreateProductRequest = {
       slug: raw.slug.trim(),
       name: raw.name.trim(),
@@ -589,17 +747,40 @@ export class ProductsPage {
     if (raw.unit.trim()) payload.unit = raw.unit.trim();
     if (raw.description.trim()) payload.description = raw.description.trim();
     if (raw.imageUrl.trim()) payload.imageUrl = raw.imageUrl.trim();
+    return payload;
+  }
 
-    this.saving.set(true);
-    try {
-      const product = await this.api.create(payload);
-      this.toast.success(`«${product.name}» اضافه شد.`);
-      this.resetForm();
-      await this.reload();
-    } catch (error) {
-      this.formError.set((error as Error).message);
-    } finally {
-      this.saving.set(false);
-    }
+  /**
+   * Only what actually changed. Sending the untouched fields back would work,
+   * but it would also mean one admin saving the form overwrites what another
+   * changed in the meantime — a patch narrows that to the fields in dispute.
+   *
+   * `null` on the two optional text fields is deliberate: it is how the API is
+   * told to clear a description or an image, as opposed to leaving it alone.
+   */
+  private patchAgainst(original: Product, raw: FormValue): UpdateProductRequest {
+    const patch: UpdateProductRequest = {};
+
+    const name = raw.name.trim();
+    if (name !== original.name) patch.name = name;
+
+    const price = Number(raw.price);
+    if (price !== original.price) patch.price = price;
+
+    const unit = raw.unit.trim() || DEFAULT_UNIT;
+    if (unit !== original.unit) patch.unit = unit;
+
+    const sortOrder = Number(raw.sortOrder) || 0;
+    if (sortOrder !== original.sortOrder) patch.sortOrder = sortOrder;
+
+    if (raw.isActive !== original.isActive) patch.isActive = raw.isActive;
+
+    const description = raw.description.trim() || null;
+    if (description !== original.description) patch.description = description;
+
+    const imageUrl = raw.imageUrl.trim() || null;
+    if (imageUrl !== original.imageUrl) patch.imageUrl = imageUrl;
+
+    return patch;
   }
 }

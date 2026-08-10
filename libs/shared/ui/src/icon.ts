@@ -28,7 +28,8 @@ export type IconName =
   | 'eye-off'
   | 'search'
   | 'inbox'
-  | 'copy';
+  | 'copy'
+  | 'pencil';
 
 /**
  * Inline SVG icons — one family, 1.75px stroke, 24px grid.
@@ -69,6 +70,8 @@ const PATHS: Record<IconName, string> = {
   inbox:
     '<path d="M3.5 13.5 6 5h12l2.5 8.5v5a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5v-5Z"/><path d="M3.5 13.5H9a3 3 0 0 0 6 0h5.5"/>',
   copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4.5A1.5 1.5 0 0 1 3 13.5v-9A1.5 1.5 0 0 1 4.5 3h9A1.5 1.5 0 0 1 15 4.5V5"/>',
+  pencil:
+    '<path d="m4 20 .8-4 11-11a2.3 2.3 0 0 1 3.2 3.2l-11 11L4 20Z"/><path d="m14.5 6.5 3 3"/>',
 };
 
 @Component({

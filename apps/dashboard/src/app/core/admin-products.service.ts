@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
-import type { CreateProductRequest, Product } from '@romano/domain';
+import type { CreateProductRequest, Product, UpdateProductRequest } from '@romano/domain';
 
 import { apiUrl, toUserMessage } from './api';
 
@@ -27,6 +27,17 @@ export class AdminProductsService {
   async create(input: CreateProductRequest): Promise<Product> {
     try {
       return await firstValueFrom(this.http.post<Product>(apiUrl('/admin/products'), input));
+    } catch (error) {
+      throw new Error(toUserMessage(error));
+    }
+  }
+
+  /** A patch: send the fields that changed, and the rest are left as they are. */
+  async update(id: string, patch: UpdateProductRequest): Promise<Product> {
+    try {
+      return await firstValueFrom(
+        this.http.patch<Product>(apiUrl(`/admin/products/${id}`), patch),
+      );
     } catch (error) {
       throw new Error(toUserMessage(error));
     }

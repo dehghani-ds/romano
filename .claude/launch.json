@@ -18,6 +18,26 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["nx", "serve", "dashboard"],
       "port": 4300
+    },
+    {
+      "name": "verify-api",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "API_PORT=3001 npx nx serve api"],
+      "port": 3001
+    },
+    {
+      "name": "verify-dashboard",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "nx",
+        "serve",
+        "dashboard",
+        "--port",
+        "4301",
+        "--proxy-config",
+        "/tmp/claude-1001/-home-yunusdehghani-test-romano/000b2629-fd28-4879-bd47-7a8b81553b65/scratchpad/proxy.dashboard.json"
+      ],
+      "port": 4301
     }
   ]
 }
