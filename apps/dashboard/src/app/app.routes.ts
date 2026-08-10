@@ -29,5 +29,11 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/orders/order-detail-page').then((m) => m.OrderDetailPage),
   },
+  {
+    path: 'products',
+    title: 'محصول‌ها · داشبورد رومانو',
+    canActivate: [adminGuard],
+    loadComponent: () => import('./features/products/products-page').then((m) => m.ProductsPage),
+  },
   { path: '**', redirectTo: '' },
 ];

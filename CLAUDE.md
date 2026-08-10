@@ -184,8 +184,13 @@ update users set role = 'admin' where username = 'their_username';
 
 - Online payment (IPG). `payments.method` already has an `ipg` value and
   `payments.reference` is there for the gateway reference.
-- Products beyond Romano — the schema supports them; the UI shows one product.
-- Admin CRUD for products (currently seeded).
+- Choosing between products in the web UI. An admin can add one from the
+  dashboard now, and `POST /api/orders` will accept any active `productId`, but
+  `CatalogService.featuredProduct()` still pins checkout to the `romano` slug —
+  so a second product is orderable through the API and invisible on the site.
+- Editing and removing products. Adding is built (`POST /api/admin/products`,
+  محصول‌ها in the dashboard); changing a price or retiring a product is still a
+  seed edit or a SQL statement.
 - Push/SMS notification when an order is accepted, and OTP for guest checkout.
 - Rate limiting is in-memory (`@nestjs/throttler` default store); a multi-instance
   deployment needs a shared one.
