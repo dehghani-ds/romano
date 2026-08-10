@@ -1,10 +1,10 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { MESSAGES } from '../common/messages';
 import { DEFAULT_UNIT } from '../common/validation';
 import { Prisma, type Product } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import type { CreateProductDto } from './dto';
+import type { CreateProductDto, UpdateProductDto } from './dto';
 
 export interface PublicProduct {
   id: string;
@@ -90,6 +90,41 @@ export class ProductsService {
       }
       throw error;
     }
+  }
+
+  /**
+   * Editing a product is a patch, not a replace: only the keys the admin sent
+   * are written, so two admins on two different fields do not overwrite each
+   * other's work.
+   *
+   * Nothing here reaches backwards. An order snapshots `productName`,
+   * `unitPrice` and `unit` onto `order_items` at checkout, so a price change
+   * today leaves yesterday's order — and its total — exactly as it was.
+   * Deactivating a product likewise only stops the *next* order: `priceBasket`
+   * rejects an inactive product, while orders already placed still deliver.
+   */
+  async update(id: string, dto: UpdateProductDto): Promise<PublicProduct> {
+    const existing = await this.prisma.product.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException({ code: 'product_not_found', message: MESSAGES.product.notFound });
+    }
+
+    const data: Prisma.ProductUpdateInput = {};
+    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.description !== undefined) data.description = dto.description;
+    if (dto.price !== undefined) data.price = new Prisma.Decimal(dto.price);
+    if (dto.currency !== undefined) data.currency = dto.currency;
+    if (dto.unit !== undefined) data.unit = dto.unit;
+    if (dto.imageUrl !== undefined) data.imageUrl = dto.imageUrl;
+    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+    if (dto.sortOrder !== undefined) data.sortOrder = dto.sortOrder;
+
+    // An empty patch is not an error — it is a form submitted with nothing
+    // changed. Skipping the write keeps `updatedAt` honest.
+    if (Object.keys(data).length === 0) return toPublicProduct(existing);
+
+    const product = await this.prisma.product.update({ where: { id }, data });
+    return toPublicProduct(product);
   }
 }
 

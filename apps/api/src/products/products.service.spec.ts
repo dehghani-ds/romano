@@ -1,15 +1,18 @@
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
 import { Prisma } from '../generated/prisma/client';
 import type { PrismaService } from '../prisma/prisma.service';
-import type { CreateProductDto } from './dto';
+import type { CreateProductDto, UpdateProductDto } from './dto';
 import { ProductsService } from './products.service';
 
 /**
  * The rules that matter when a product is added: the slug is unique, the price
  * reaches the column as a Decimal, and the optional fields fall back to the
  * defaults rather than to `undefined`.
+ *
+ * And when one is edited: only what was sent is written, `null` clears the two
+ * columns that allow it, and the slug is not in the picture at all.
  */
 
 type ProductRow = {
@@ -51,9 +54,12 @@ function makeService() {
   const create = vi.fn(({ data }: { data: Record<string, unknown> }): Promise<ProductRow> =>
     Promise.resolve(row(data as Partial<ProductRow>)),
   );
+  const update = vi.fn(({ data }: { data: Record<string, unknown> }): Promise<ProductRow> =>
+    Promise.resolve(row(data as Partial<ProductRow>)),
+  );
 
-  const prisma = { product: { findUnique, findMany, create } } as unknown as PrismaService;
-  return { service: new ProductsService(prisma), findUnique, findMany, create };
+  const prisma = { product: { findUnique, findMany, create, update } } as unknown as PrismaService;
+  return { service: new ProductsService(prisma), findUnique, findMany, create, update };
 }
 
 const minimal: CreateProductDto = { slug: 'latte', name: 'لاته', price: 149900 };
@@ -147,6 +153,86 @@ describe('ProductsService.create', () => {
     create.mockRejectedValue(boom);
 
     await expect(service.create({ ...minimal })).rejects.toBe(boom);
+  });
+});
+
+describe('ProductsService.update', () => {
+  const id = '0192f5a0-0000-7000-8000-000000000000';
+
+  it('writes only the fields that were sent', async () => {
+    const { service, findUnique, update } = makeService();
+    findUnique.mockResolvedValue(row());
+
+    await service.update(id, { name: 'رومانوی ویژه' });
+
+    const { data } = update.mock.calls[0][0];
+    expect(Object.keys(data)).toEqual(['name']);
+    expect(data['name']).toBe('رومانوی ویژه');
+  });
+
+  it('sends the new price as a Decimal and returns it as a number', async () => {
+    const { service, findUnique, update } = makeService();
+    findUnique.mockResolvedValue(row());
+
+    const product = await service.update(id, { price: 139900 });
+
+    const { data } = update.mock.calls[0][0];
+    expect(data['price']).toBeInstanceOf(Prisma.Decimal);
+    expect((data['price'] as Prisma.Decimal).toNumber()).toBe(139900);
+    expect(product.price).toBe(139900);
+  });
+
+  it('clears description and imageUrl when they come through as null', async () => {
+    const { service, findUnique, update } = makeService();
+    findUnique.mockResolvedValue(row({ description: 'قدیمی', imageUrl: 'https://x/y.png' }));
+
+    await service.update(id, { description: null, imageUrl: null });
+
+    const { data } = update.mock.calls[0][0];
+    expect(data['description']).toBeNull();
+    expect(data['imageUrl']).toBeNull();
+  });
+
+  it('takes a product out of the shop without touching anything else', async () => {
+    const { service, findUnique, update } = makeService();
+    findUnique.mockResolvedValue(row());
+
+    await service.update(id, { isActive: false });
+
+    const { data } = update.mock.calls[0][0];
+    expect(Object.keys(data)).toEqual(['isActive']);
+    expect(data['isActive']).toBe(false);
+  });
+
+  it('never writes the slug, even by accident', async () => {
+    const { service, findUnique, update } = makeService();
+    findUnique.mockResolvedValue(row());
+
+    // The DTO has no `slug` and the whitelist strips it before this point; the
+    // cast is here to pin that the service copies named fields rather than
+    // spreading whatever it was handed.
+    await service.update(id, { name: 'لاته', slug: 'latte' } as UpdateProductDto);
+
+    const { data } = update.mock.calls[0][0];
+    expect(data).not.toHaveProperty('slug');
+  });
+
+  it('does not write at all when the patch is empty', async () => {
+    const { service, findUnique, update } = makeService();
+    findUnique.mockResolvedValue(row({ name: 'رومانو' }));
+
+    const product = await service.update(id, {});
+
+    expect(update).not.toHaveBeenCalled();
+    expect(product.name).toBe('رومانو');
+  });
+
+  it('answers 404 for a product that is not there', async () => {
+    const { service, findUnique, update } = makeService();
+    findUnique.mockResolvedValue(null);
+
+    await expect(service.update(id, { name: 'لاته' })).rejects.toBeInstanceOf(NotFoundException);
+    expect(update).not.toHaveBeenCalled();
   });
 });
 

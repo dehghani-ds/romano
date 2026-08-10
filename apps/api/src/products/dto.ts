@@ -11,6 +11,7 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateIf,
 } from 'class-validator';
 
 import {
@@ -27,6 +28,20 @@ const trim = () => Transform(({ value }) => (typeof value === 'string' ? value.t
 /** Empty strings from a form field mean "not given", not "set it to empty". */
 const emptyToUndefined = () =>
   Transform(({ value }) => (typeof value === 'string' && value.trim() === '' ? undefined : value));
+
+/** On a PATCH, a field left empty is the admin clearing it. */
+const emptyToNull = () =>
+  Transform(({ value }) => (typeof value === 'string' && value.trim() === '' ? null : value));
+
+/**
+ * Optional in the PATCH sense: absent means "leave it alone", and anything else
+ * — `null` included — is validated. `@IsOptional()` would wave `null` through,
+ * and `null` has no business reaching a `NOT NULL` column.
+ */
+const present = () => ValidateIf((_object, value) => value !== undefined);
+
+/** The same, for the two columns where `null` is a legitimate value. */
+const given = () => ValidateIf((_object, value) => value !== undefined && value !== null);
 
 export class CreateProductDto {
   @trim()
@@ -85,6 +100,74 @@ export class CreateProductDto {
   isActive?: boolean;
 
   @IsOptional()
+  @Type(() => Number)
+  @IsInt({ message: FIELD_ERRORS.productSortOrder })
+  @Min(0, { message: FIELD_ERRORS.productSortOrder })
+  @Max(999, { message: FIELD_ERRORS.productSortOrder })
+  sortOrder?: number;
+}
+
+/**
+ * Editing a product. A PATCH: a field that is absent is left alone, which is
+ * what lets the dashboard send only what the admin actually touched.
+ *
+ * `slug` is not here, and that is the point — it is the product's identity in a
+ * URL, and the add form promises in writing that it never changes. A rename
+ * that has to change the slug is a new product plus deactivating the old one.
+ */
+export class UpdateProductDto {
+  @present()
+  @trim()
+  @IsString()
+  @Length(1, 80, { message: FIELD_ERRORS.productName })
+  name?: string;
+
+  /** `null` — or an empty field — clears the description; absent keeps it. */
+  @given()
+  @emptyToNull()
+  @trim()
+  @IsString()
+  @MaxLength(500, { message: FIELD_ERRORS.productDescription })
+  description?: string | null;
+
+  /**
+   * Changing the price never touches an order that already exists: `order_items`
+   * snapshots `unitPrice` and `unit` at checkout, so history keeps its own copy.
+   */
+  @present()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 }, { message: FIELD_ERRORS.productPrice })
+  @Min(MIN_PRODUCT_PRICE, { message: FIELD_ERRORS.productPrice })
+  @Max(MAX_PRODUCT_PRICE, { message: FIELD_ERRORS.productPrice })
+  price?: number;
+
+  @present()
+  @trim()
+  @Matches(CURRENCY_PATTERN, { message: FIELD_ERRORS.productCurrency })
+  currency?: string;
+
+  @present()
+  @trim()
+  @IsString()
+  @Length(1, MAX_UNIT_LENGTH, { message: FIELD_ERRORS.productUnit })
+  unit?: string;
+
+  /** `null` — or an empty field — removes the image; absent keeps it. */
+  @given()
+  @emptyToNull()
+  @trim()
+  @IsUrl(
+    { protocols: ['http', 'https'], require_protocol: true },
+    { message: FIELD_ERRORS.productImageUrl },
+  )
+  @MaxLength(500, { message: FIELD_ERRORS.productImageUrl })
+  imageUrl?: string | null;
+
+  @present()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @present()
   @Type(() => Number)
   @IsInt({ message: FIELD_ERRORS.productSortOrder })
   @Min(0, { message: FIELD_ERRORS.productSortOrder })
