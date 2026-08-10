@@ -32,8 +32,11 @@ export const MESSAGES = {
   order: {
     notFound: 'سفارش پیدا نشد.',
     forbidden: 'به این سفارش دسترسی ندارید.',
-    quantityRange: 'تعداد فنجان باید بین ۱ تا ۲۰ باشد.',
+    quantityRange: 'تعداد هر مورد باید بین ۱ تا ۲۰ باشد.',
     productUnavailable: 'این محصول در دسترس نیست.',
+    basketEmpty: 'سبد شما خالی است. دست‌کم یک محصول انتخاب کنید.',
+    duplicateProduct: 'هر محصول فقط یک بار در سبد می‌آید — تعدادش را زیاد کنید.',
+    mixedCurrency: 'همهٔ محصول‌های یک سفارش باید با یک واحد پول باشند.',
     futureDateRequired: 'سفارش باید برای یک روز آینده ثبت شود (دست‌کم فردا).',
     cancelOnlyPending: 'فقط سفارشی که هنوز در انتظار است را می‌توانید خودتان لغو کنید.',
     transition: (from: OrderStatus, to: OrderStatus) =>

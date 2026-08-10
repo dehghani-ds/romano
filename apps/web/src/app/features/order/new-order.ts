@@ -7,24 +7,23 @@ import {
   formatDeliveryDate,
   formatMoney,
   formatNumber,
-  pluralCups,
+  formatQuantity,
   tomorrowIso,
 } from '@romano/domain';
 import { Icon, PaymentCard, Spinner, ToastService } from '@romano/ui';
 
 import { AuthService } from '../../core/auth.service';
+import { BasketStore, MAX_LINE_QUANTITY } from '../../core/basket.store';
 import { CatalogService } from '../../core/catalog.service';
 import { OrdersService } from '../../core/orders.service';
 
-const MAX_CUPS = 20;
-const MIN_CUPS = 1;
 const MOBILE_PATTERN = /^09\d{9}$/;
 const MAX_RECEIPT_BYTES = 5 * 1024 * 1024;
 
 type FieldName = 'contactName' | 'contactMobile' | 'teamName';
 
 /**
- * The order flow: how many Romanos, who they are for, optionally a receipt.
+ * The order flow: what is in the basket, who it is for, optionally a receipt.
  *
  * This route is open to everyone. A signed-in customer gets their details
  * filled in from their profile and can still change them — someone ordering for
@@ -59,68 +58,115 @@ type FieldName = 'contactName' | 'contactMobile' | 'teamName';
           <app-icon name="alert" [size]="18" />
           <span>{{ message }}</span>
         </div>
-      } @else if (product(); as item) {
+      } @else if (catalog().length === 0) {
+        <div class="card">
+          <p class="muted">هیچ محصولی برای فروش نیست. کمی بعد دوباره سر بزنید.</p>
+        </div>
+      } @else {
         <form class="stack" (submit)="submit($event)" novalidate>
-          <!-- Product ------------------------------------------------------ -->
-          <section class="card product">
-            <span class="product__mark"><app-icon name="coffee" [size]="26" /></span>
-            <div class="product__body">
-              <h2 class="product__name">{{ item.name }}</h2>
-              <p class="muted text-sm">{{ item.description }}</p>
-              <p class="product__price numeric">{{ money(item.price, item.currency) }} برای هر فنجان</p>
-            </div>
-          </section>
-
-          <!-- Quantity ----------------------------------------------------- -->
+          <!-- Catalog ------------------------------------------------------ -->
           <section class="card">
-            <h2 class="section-title">چند فنجان؟</h2>
-            <div class="stepper">
-              <button
-                type="button"
-                class="stepper__btn"
-                (click)="decrement()"
-                [disabled]="quantity() <= minCups"
-                aria-label="یک فنجان کمتر"
-              >
-                <app-icon name="minus" [size]="20" />
-              </button>
+            <h2 class="section-title">چه چیزی می‌خواهید؟</h2>
 
-              <label class="visually-hidden" for="quantity">تعداد فنجان</label>
-              <input
-                id="quantity"
-                class="stepper__value numeric"
-                type="number"
-                dir="ltr"
-                inputmode="numeric"
-                [min]="minCups"
-                [max]="maxCups"
-                [value]="quantity()"
-                (input)="onQuantityInput($event)"
-              />
+            <ul class="menu">
+              @for (item of catalog(); track item.id) {
+                <li class="menu__item" [class.is-picked]="basket.has(item.id)">
+                  <span class="menu__mark"><app-icon name="coffee" [size]="22" /></span>
 
-              <button
-                type="button"
-                class="stepper__btn"
-                (click)="increment()"
-                [disabled]="quantity() >= maxCups"
-                aria-label="یک فنجان بیشتر"
-              >
-                <app-icon name="plus" [size]="20" />
-              </button>
-            </div>
+                  <div class="menu__body">
+                    <h3 class="menu__name">{{ item.name }}</h3>
+                    @if (item.description) {
+                      <p class="muted text-sm">{{ item.description }}</p>
+                    }
+                    <p class="menu__price numeric">
+                      {{ money(item.price, item.currency) }} برای هر {{ item.unit }}
+                    </p>
+                  </div>
 
-            @if (quantity() >= maxCups) {
-              <p class="field__hint">
-                هر سفارش حداکثر بیست فنجان است. برای بیشتر، سفارش دوم ثبت کنید.
-              </p>
-            } @else if (quantity() <= minCups) {
-              <p class="field__hint">دست‌کم یک فنجان.</p>
-            }
+                  @if (basket.has(item.id)) {
+                    <div class="stepper">
+                      <button
+                        type="button"
+                        class="stepper__btn"
+                        (click)="stepDown(item)"
+                        [attr.aria-label]="'یک ' + item.unit + ' کمتر از ' + item.name"
+                      >
+                        <app-icon name="minus" [size]="20" />
+                      </button>
+
+                      <label class="visually-hidden" [attr.for]="'qty-' + item.id">
+                        تعداد {{ item.name }}
+                      </label>
+                      <input
+                        [id]="'qty-' + item.id"
+                        class="stepper__value numeric"
+                        type="number"
+                        dir="ltr"
+                        inputmode="numeric"
+                        [min]="0"
+                        [max]="maxPerLine"
+                        [value]="basket.quantityOf(item.id)"
+                        (input)="onQuantityInput(item, $event)"
+                      />
+
+                      <button
+                        type="button"
+                        class="stepper__btn"
+                        (click)="stepUp(item)"
+                        [disabled]="basket.quantityOf(item.id) >= maxPerLine"
+                        [attr.aria-label]="'یک ' + item.unit + ' بیشتر از ' + item.name"
+                      >
+                        <app-icon name="plus" [size]="20" />
+                      </button>
+                    </div>
+                  } @else {
+                    <button
+                      type="button"
+                      class="btn btn--secondary btn--sm menu__add"
+                      (click)="add(item)"
+                    >
+                      <app-icon name="plus" [size]="16" />
+                      افزودن
+                    </button>
+                  }
+                </li>
+              }
+            </ul>
+
+            <p class="field__hint">از هر محصول حداکثر بیست تا در یک سفارش.</p>
           </section>
+
+          <!-- Basket ------------------------------------------------------- -->
+          @if (!basket.isEmpty()) {
+            <section class="card">
+              <h2 class="section-title">سبد شما</h2>
+              <ul class="basket">
+                @for (entry of basket.entries(); track entry.productId) {
+                  <li class="basket__line">
+                    <span class="basket__name">{{ entry.product.name }}</span>
+                    <span class="muted text-sm">
+                      {{ quantityLabel(entry.quantity, entry.product.unit) }}
+                    </span>
+                    <span class="basket__total numeric">
+                      {{ money(entry.lineTotal, entry.product.currency) }}
+                    </span>
+                    <button
+                      type="button"
+                      class="basket__remove"
+                      (click)="remove(entry.productId)"
+                      [attr.aria-label]="'برداشتن ' + entry.product.name + ' از سبد'"
+                    >
+                      <app-icon name="x" [size]="16" />
+                    </button>
+                  </li>
+                }
+              </ul>
+            </section>
+          }
 
           <!-- Who and where ------------------------------------------------ -->
           <section class="card">
-            <h2 class="section-title">قهوه را به چه کسی برسانیم؟</h2>
+            <h2 class="section-title">سفارش را به چه کسی برسانیم؟</h2>
 
             @if (!auth.isSignedIn()) {
               <p class="muted text-sm signed-out-note">
@@ -272,22 +318,39 @@ type FieldName = 'contactName' | 'contactMobile' | 'teamName';
 
           <!-- Summary + CTA ------------------------------------------------ -->
           <section class="card summary">
-            <div class="summary__row">
-              <span class="muted">{{ cupsLabel() }}</span>
-              <span class="numeric">{{ money(item.price * quantity(), item.currency) }}</span>
-            </div>
+            @for (entry of basket.entries(); track entry.productId) {
+              <div class="summary__row">
+                <span class="muted">
+                  {{ entry.product.name }} ·
+                  {{ quantityLabel(entry.quantity, entry.product.unit) }}
+                </span>
+                <span class="numeric">
+                  {{ money(entry.lineTotal, entry.product.currency) }}
+                </span>
+              </div>
+            }
             <div class="summary__row summary__row--total">
               <span>مجموع</span>
-              <span class="numeric">{{ money(item.price * quantity(), item.currency) }}</span>
+              <span class="numeric">{{ money(basket.total(), basket.currency()) }}</span>
             </div>
 
-            <button type="submit" class="btn btn--accent btn--block btn--lg" [disabled]="busy()">
+            <button
+              type="submit"
+              class="btn btn--accent btn--block btn--lg"
+              [disabled]="busy() || basket.isEmpty()"
+            >
               @if (busy()) {
                 <app-spinner [size]="18" label="در حال ثبت سفارش" />
               } @else {
                 ثبت سفارش
               }
             </button>
+
+            @if (basket.isEmpty()) {
+              <p class="text-sm muted summary__note">
+                برای ثبت سفارش دست‌کم یک محصول به سبد اضافه کنید.
+              </p>
+            }
             <p class="text-sm muted summary__note">
               سفارش شما تا تأیید مدیر <strong>در انتظار</strong> می‌ماند.
             </p>
@@ -318,33 +381,104 @@ type FieldName = 'contactName' | 'contactMobile' | 'teamName';
       margin-bottom: var(--space-md);
     }
 
-    .product {
+    /* Catalog */
+    .menu {
+      list-style: none;
+      margin: 0 0 var(--space-md);
+      padding: 0;
+      display: grid;
+      gap: var(--space-sm);
+    }
+
+    .menu__item {
       display: flex;
       align-items: flex-start;
       gap: var(--space-md);
+      padding: var(--space-md);
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-lg);
+      transition: border-color var(--dur-base) var(--ease-out);
     }
 
-    .product__mark {
+    /* Being in the basket is never colour alone — the row also swaps its
+       افزودن button for a stepper showing the count. */
+    .menu__item.is-picked {
+      border-color: var(--c-primary);
+      background: var(--c-primary-tint);
+    }
+
+    .menu__mark {
       display: grid;
       place-items: center;
       flex: none;
-      width: 56px;
-      height: 56px;
+      width: 48px;
+      height: 48px;
       border-radius: var(--radius-lg);
       background: var(--c-primary);
       color: var(--c-on-primary);
     }
 
-    .product__name {
+    .menu__body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .menu__name {
       font-family: var(--font-display);
-      font-size: var(--fs-h2);
+      font-size: var(--fs-h3);
       margin-bottom: var(--space-xs);
     }
 
-    .product__price {
+    .menu__price {
       margin-top: var(--space-sm);
       font-weight: 600;
       color: var(--c-primary);
+    }
+
+    .menu__add {
+      flex: none;
+      align-self: center;
+    }
+
+    /* Basket */
+    .basket {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: var(--space-sm);
+    }
+
+    .basket__line {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+
+    .basket__name {
+      font-weight: 500;
+    }
+
+    .basket__total {
+      margin-inline-start: auto;
+    }
+
+    .basket__remove {
+      display: grid;
+      place-items: center;
+      flex: none;
+      width: 44px;
+      height: 44px;
+      border: 0;
+      border-radius: var(--radius-md);
+      background: none;
+      color: var(--c-fg-muted);
+      cursor: pointer;
+      transition: color var(--dur-base) var(--ease-out);
+
+      &:hover {
+        color: var(--c-danger);
+      }
     }
 
     /* Quantity stepper */
@@ -498,14 +632,14 @@ type FieldName = 'contactName' | 'contactMobile' | 'teamName';
   `,
 })
 export class NewOrder {
-  private readonly catalog = inject(CatalogService);
+  private readonly menu = inject(CatalogService);
   private readonly orders = inject(OrdersService);
   protected readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly toasts = inject(ToastService);
 
-  protected readonly minCups = MIN_CUPS;
-  protected readonly maxCups = MAX_CUPS;
+  protected readonly basket = inject(BasketStore);
+  protected readonly maxPerLine = MAX_LINE_QUANTITY;
   protected readonly deliveryDateLabel = `آمادهٔ ${formatDeliveryDate(tomorrowIso())}`;
 
   protected readonly loading = signal(true);
@@ -514,8 +648,7 @@ export class NewOrder {
   protected readonly error = signal<string | null>(null);
   protected readonly receiptError = signal<string | null>(null);
 
-  protected readonly product = signal<Product | null>(null);
-  protected readonly quantity = signal(1);
+  protected readonly catalog = signal<Product[]>([]);
   protected readonly notes = signal('');
   protected readonly receipt = signal<File | null>(null);
 
@@ -540,7 +673,10 @@ export class NewOrder {
     return team ? `${company} — ${team}` : company;
   });
 
-  protected readonly cupsLabel = computed(() => pluralCups(this.quantity()));
+  /** `۲ فنجان`, `۳ عدد` — whatever the product counts itself in. */
+  protected quantityLabel(quantity: number, unit: string): string {
+    return formatQuantity(quantity, unit);
+  }
 
   /** `۴۸ / ۵۰۰` — both numbers in Persian digits. */
   protected readonly notesCount = computed(
@@ -566,7 +702,10 @@ export class NewOrder {
 
   private async load(): Promise<void> {
     try {
-      this.product.set(await this.catalog.featuredProduct());
+      const products = await this.menu.products();
+      this.catalog.set(products);
+      // The basket holds ids; it needs the catalog to price and name them.
+      this.basket.setCatalog(products);
     } catch (err) {
       this.loadError.set((err as Error).message);
     } finally {
@@ -574,21 +713,29 @@ export class NewOrder {
     }
   }
 
-  protected increment(): void {
-    this.quantity.update((q) => Math.min(MAX_CUPS, q + 1));
+  protected add(product: Product): void {
+    this.basket.add(product.id);
   }
 
-  protected decrement(): void {
-    this.quantity.update((q) => Math.max(MIN_CUPS, q - 1));
+  protected remove(productId: string): void {
+    this.basket.remove(productId);
   }
 
-  protected onQuantityInput(event: Event): void {
-    const raw = Number((event.target as HTMLInputElement).value);
-    const clamped = Number.isFinite(raw)
-      ? Math.min(MAX_CUPS, Math.max(MIN_CUPS, Math.trunc(raw)))
-      : MIN_CUPS;
-    this.quantity.set(clamped);
-    (event.target as HTMLInputElement).value = String(clamped);
+  protected stepUp(product: Product): void {
+    this.basket.setQuantity(product.id, this.basket.quantityOf(product.id) + 1);
+  }
+
+  /** Stepping below one takes the line out of the basket entirely. */
+  protected stepDown(product: Product): void {
+    this.basket.setQuantity(product.id, this.basket.quantityOf(product.id) - 1);
+  }
+
+  protected onQuantityInput(product: Product, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const raw = Number(input.value);
+    this.basket.setQuantity(product.id, Number.isFinite(raw) ? Math.trunc(raw) : 0);
+    // Echo back what the store settled on, so a clamped value is visible.
+    input.value = String(this.basket.quantityOf(product.id));
   }
 
   protected onNotesInput(event: Event): void {
@@ -632,8 +779,7 @@ export class NewOrder {
   protected async submit(event: Event): Promise<void> {
     event.preventDefault();
 
-    const item = this.product();
-    if (!item || this.busy()) return;
+    if (this.busy() || this.basket.isEmpty()) return;
 
     const fields: FieldName[] = ['contactName', 'contactMobile', 'teamName'];
     const firstInvalid = fields.find((field) => this.fieldError(field));
@@ -653,14 +799,18 @@ export class NewOrder {
 
     try {
       const { order } = await this.orders.place({
-        productId: item.id,
-        quantity: this.quantity(),
+        items: this.basket.toOrderLines(),
         notes: this.notes().trim() || null,
         contactName: this.contactName().trim(),
         contactMobile: this.contactMobile().trim(),
         companyName: this.companyName().trim(),
         teamName: this.teamName().trim(),
       });
+
+      // The order exists now, so the basket has been spent — empty it before
+      // anything below can fail, or a retried receipt upload would leave the
+      // customer looking at a basket they have already ordered.
+      this.basket.clear();
 
       // The order exists now; a failed receipt must not lose it.
       const file = this.receipt();

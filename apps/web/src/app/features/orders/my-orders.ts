@@ -1,7 +1,12 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { OrderDetail, formatDeliveryDate, formatMoney, pluralCups } from '@romano/domain';
+import {
+  OrderDetail,
+  formatDeliveryDate,
+  formatMoney,
+  formatQuantityBreakdown,
+} from '@romano/domain';
 import { EmptyState, Icon, StatusChip } from '@romano/ui';
 
 import { OrdersService } from '../../core/orders.service';
@@ -58,7 +63,7 @@ import { OrdersService } from '../../core/orders.service';
                 <div class="order__meta muted text-sm">
                   <span class="order__meta-item">
                     <app-icon name="coffee" [size]="15" />
-                    {{ cups(order.totalCups) }}
+                    {{ quantities(order) }}
                   </span>
                   <span class="order__meta-item">
                     <app-icon name="users" [size]="15" />
@@ -158,7 +163,10 @@ export class MyOrders {
 
   protected readonly deliveryDate = formatDeliveryDate;
   protected readonly money = formatMoney;
-  protected readonly cups = pluralCups;
+  /** `۲ فنجان · ۳ عدد` — one summary however many kinds are in the order. */
+  protected quantities(order: OrderDetail): string {
+    return formatQuantityBreakdown(order.items);
+  }
 
   constructor() {
     void this.load();

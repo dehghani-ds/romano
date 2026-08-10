@@ -61,10 +61,27 @@ function messageOf(payload: string | object, fallback: string): string {
 
   // ValidationPipe hands back an array of per-field complaints. Ours are already
   // written in Persian by the DTO decorators, so the first one is showable.
-  if (Array.isArray(message)) return String(message[0] ?? MESSAGES.generic.validationFailed);
+  if (Array.isArray(message)) {
+    const first = message[0];
+    return first === undefined
+      ? MESSAGES.generic.validationFailed
+      : stripFieldPath(String(first));
+  }
   if (typeof message === 'string') return message;
 
   return fallback;
+}
+
+/**
+ * A complaint about a nested field arrives with its path glued on —
+ * `items.0.تعداد هر مورد باید…` — once the basket became an array of lines.
+ * That path is for us, not for the person reading it, so it comes back off.
+ *
+ * Only a leading ASCII path is removed, and only when Persian follows it, so a
+ * message that happens to start with a Latin word is left alone.
+ */
+export function stripFieldPath(message: string): string {
+  return message.replace(/^[A-Za-z0-9_$.[\]]+\.(?=[^\x00-\x7F])/u, '');
 }
 
 function codeOf(payload: string | object, status: number): string {

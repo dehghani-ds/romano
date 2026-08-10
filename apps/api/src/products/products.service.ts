@@ -1,6 +1,7 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 
 import { MESSAGES } from '../common/messages';
+import { DEFAULT_UNIT } from '../common/validation';
 import { Prisma, type Product } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CreateProductDto } from './dto';
@@ -12,6 +13,7 @@ export interface PublicProduct {
   description: string | null;
   price: number;
   currency: string;
+  unit: string;
   imageUrl: string | null;
   isActive: boolean;
   sortOrder: number;
@@ -26,6 +28,7 @@ export function toPublicProduct(product: Product): PublicProduct {
     // Decimal is exact in the database; the UI only ever formats it.
     price: product.price.toNumber(),
     currency: product.currency,
+    unit: product.unit,
     imageUrl: product.imageUrl,
     isActive: product.isActive,
     sortOrder: product.sortOrder,
@@ -72,6 +75,7 @@ export class ProductsService {
           description: dto.description ?? null,
           price: new Prisma.Decimal(dto.price),
           currency: dto.currency ?? 'IRR',
+          unit: dto.unit ?? DEFAULT_UNIT,
           imageUrl: dto.imageUrl ?? null,
           isActive: dto.isActive ?? true,
           sortOrder: dto.sortOrder ?? 0,

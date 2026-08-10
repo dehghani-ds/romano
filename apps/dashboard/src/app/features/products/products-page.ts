@@ -1,7 +1,13 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
-import { CreateProductRequest, Product, formatMoney, formatNumber } from '@romano/domain';
+import {
+  CreateProductRequest,
+  DEFAULT_UNIT,
+  Product,
+  formatMoney,
+  formatNumber,
+} from '@romano/domain';
 import { EmptyState, Icon, Spinner, ToastService } from '@romano/ui';
 
 import { AdminProductsService } from '../../core/admin-products.service';
@@ -98,7 +104,7 @@ const MAX_PRICE = 100_000_000;
           <div class="field-grid field-grid--2">
             <div class="field">
               <label class="field__label" for="price">
-                قیمت هر فنجان<span class="field__required" aria-hidden="true">*</span>
+                قیمت هر واحد<span class="field__required" aria-hidden="true">*</span>
               </label>
               <input
                 id="price"
@@ -122,6 +128,29 @@ const MAX_PRICE = 100_000_000;
               }
             </div>
 
+            <div class="field">
+              <label class="field__label" for="unit">واحد شمارش</label>
+              <input
+                id="unit"
+                class="field__control"
+                formControlName="unit"
+                [attr.placeholder]="defaultUnit"
+                [attr.aria-invalid]="invalid('unit') ? 'true' : null"
+              />
+              @if (invalid('unit')) {
+                <p class="field__error" role="alert">
+                  <app-icon name="alert" [size]="14" />
+                  کوتاه بنویسید — مثل فنجان، عدد یا بسته.
+                </p>
+              } @else {
+                <p class="field__hint">
+                  مشتری «۲ {{ unitPreview() }}» می‌بیند. خالی بگذارید تا {{ defaultUnit }} شود.
+                </p>
+              }
+            </div>
+          </div>
+
+          <div class="field-grid field-grid--2">
             <div class="field">
               <label class="field__label" for="sortOrder">ترتیب نمایش</label>
               <input
@@ -154,7 +183,7 @@ const MAX_PRICE = 100_000_000;
               class="field__control"
               rows="3"
               formControlName="description"
-              placeholder="یک جمله دربارهٔ این قهوه — همان چیزی که مشتری هنگام سفارش می‌خواند."
+              placeholder="یک جمله دربارهٔ این محصول — همان چیزی که مشتری هنگام سفارش می‌خواند."
               [attr.aria-invalid]="invalid('description') ? 'true' : null"
             ></textarea>
             @if (invalid('description')) {
@@ -242,6 +271,7 @@ const MAX_PRICE = 100_000_000;
                 <th scope="col">نام</th>
                 <th scope="col">شناسه</th>
                 <th scope="col">قیمت</th>
+                <th scope="col">واحد</th>
                 <th scope="col">ترتیب</th>
                 <th scope="col">وضعیت</th>
               </tr>
@@ -252,6 +282,7 @@ const MAX_PRICE = 100_000_000;
                   <td>{{ product.name }}</td>
                   <td><span class="code muted">{{ product.slug }}</span></td>
                   <td class="numeric">{{ money(product) }}</td>
+                  <td>{{ product.unit }}</td>
                   <td class="numeric">{{ number(product.sortOrder) }}</td>
                   <td>
                     <span class="avail" [class.avail--off]="!product.isActive">
@@ -454,6 +485,7 @@ export class ProductsPage {
   private readonly toast = inject(ToastService);
 
   protected readonly maxPrice = MAX_PRICE;
+  protected readonly defaultUnit = DEFAULT_UNIT;
 
   protected readonly products = signal<Product[]>([]);
   protected readonly loading = signal(true);
@@ -465,6 +497,7 @@ export class ProductsPage {
     name: ['', [Validators.required, Validators.maxLength(80)]],
     slug: ['', [Validators.required, Validators.pattern(SLUG_PATTERN), Validators.maxLength(60)]],
     price: [0, [Validators.required, Validators.min(1), Validators.max(MAX_PRICE)]],
+    unit: ['', [Validators.maxLength(16)]],
     sortOrder: [0, [Validators.min(0), Validators.max(999)]],
     description: ['', [Validators.maxLength(500)]],
     imageUrl: [''],
@@ -506,6 +539,11 @@ export class ProductsPage {
     return formatMoney(price);
   }
 
+  /** Echoes the unit into the hint so the wording is visible before saving. */
+  protected unitPreview(): string {
+    return this.form.controls.unit.value.trim() || DEFAULT_UNIT;
+  }
+
   protected money(product: Product): string {
     return formatMoney(product.price, product.currency);
   }
@@ -519,6 +557,7 @@ export class ProductsPage {
       name: '',
       slug: '',
       price: 0,
+      unit: '',
       sortOrder: 0,
       description: '',
       imageUrl: '',
@@ -547,6 +586,7 @@ export class ProductsPage {
       isActive: raw.isActive,
       sortOrder: Number(raw.sortOrder) || 0,
     };
+    if (raw.unit.trim()) payload.unit = raw.unit.trim();
     if (raw.description.trim()) payload.description = raw.description.trim();
     if (raw.imageUrl.trim()) payload.imageUrl = raw.imageUrl.trim();
 

@@ -72,9 +72,39 @@ export function formatMoney(amount: number, currency = 'IRR'): string {
   return currency === 'IRR' ? `${value} ریال` : `${value} ${currency}`;
 }
 
-/** Persian has no plural form for counted nouns: three cups is `۳ فنجان`. */
-export function pluralCups(count: number): string {
-  return `${NUMBER.format(count)} فنجان`;
+/** The unit a product is counted in when it does not name its own. */
+export const DEFAULT_UNIT = 'فنجان';
+
+/**
+ * `۳ فنجان`, `۵ عدد`. Persian has no plural form for a counted noun, so the
+ * unit is written exactly as the product stores it.
+ *
+ * This replaced `pluralCups`, which assumed every product was coffee — it is
+ * not, now that a cookie can sit in the same basket.
+ */
+export function formatQuantity(count: number, unit: string = DEFAULT_UNIT): string {
+  return `${NUMBER.format(count)} ${unit || DEFAULT_UNIT}`;
+}
+
+/**
+ * A basket in words: `۲ فنجان رومانو · ۳ عدد کوکی`. Falls back to a bare count
+ * when the lines share one unit, which is the common single-product case.
+ */
+export function formatQuantityBreakdown(
+  lines: readonly { quantity: number; unit?: string | null }[],
+): string {
+  if (lines.length === 0) return formatQuantity(0);
+
+  const units = new Set(lines.map((line) => line.unit || DEFAULT_UNIT));
+  const total = lines.reduce((sum, line) => sum + line.quantity, 0);
+  if (units.size === 1) return formatQuantity(total, [...units][0]);
+
+  const byUnit = new Map<string, number>();
+  for (const line of lines) {
+    const unit = line.unit || DEFAULT_UNIT;
+    byUnit.set(unit, (byUnit.get(unit) ?? 0) + line.quantity);
+  }
+  return [...byUnit].map(([unit, count]) => formatQuantity(count, unit)).join(' · ');
 }
 
 /**

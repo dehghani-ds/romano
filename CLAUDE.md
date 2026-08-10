@@ -15,8 +15,11 @@ that browser; the order number plus the mobile finds it again from anywhere.
 Signing up is optional and exists so that orders stay in one place — a guest
 order can be claimed onto an account afterwards.
 
-Romano is the only product on sale today. The schema is already multi-product:
-adding latte or espresso is a row in `products`, not a migration.
+The catalog is not coffee-only. An order is a basket: several products, each
+with its own quantity, in one order. Adding a latte or a cookie is a row in
+`products` — an admin adds one from the dashboard, and it appears on the site
+straight away. Each product carries its own `unit` (`فنجان`, `عدد`, `بسته`),
+which is what the customer is counting and what every screen says.
 
 ## Stack
 
@@ -89,7 +92,7 @@ There is no generic CRUD endpoint for `orders`, `order_items`, `payments` or
 
 | Method | Who | Does |
 |--------|-----|------|
-| `place` | anyone | Prices from `products`, resolves the destination, creates order + item + payment + first history row |
+| `place` | anyone | Prices every basket line from `products`, resolves the destination, creates order + items + payment + first history row |
 | `attachReceipt` | owner, guest token holder, or admin | Stores the file, marks the payment `submitted` |
 | `cancelOwn` | owner or guest token holder | Cancels, but only while `pending` |
 | `adminSetStatus` | admin | Moves through the lifecycle, stamps timestamps, appends history |
@@ -102,8 +105,9 @@ Rules the service enforces, all previously Postgres triggers:
   creation only — an admin can still close out yesterday's order.
 - Status machine: `pending → in_progress → done`, and `pending|in_progress →
   cancelled`. `done` and `cancelled` are terminal.
-- `orders.totalAmount` and `payments.amount` are computed from the product price
-  and quantity, never from the request.
+- `orders.totalAmount` and `payments.amount` are summed from each line's product
+  price and quantity, never from the request. `priceBasket` is the pure function
+  that does it, and `price-basket.spec.ts` covers the arithmetic and refusals.
 - Every status change appends to `order_status_history`.
 - Accepting an order auto-verifies a payment that is merely `submitted`.
 
@@ -184,13 +188,11 @@ update users set role = 'admin' where username = 'their_username';
 
 - Online payment (IPG). `payments.method` already has an `ipg` value and
   `payments.reference` is there for the gateway reference.
-- Choosing between products in the web UI. An admin can add one from the
-  dashboard now, and `POST /api/orders` will accept any active `productId`, but
-  `CatalogService.featuredProduct()` still pins checkout to the `romano` slug —
-  so a second product is orderable through the API and invisible on the site.
 - Editing and removing products. Adding is built (`POST /api/admin/products`,
-  محصول‌ها in the dashboard); changing a price or retiring a product is still a
-  seed edit or a SQL statement.
+  محصول‌ها in the dashboard); changing a price, a unit or retiring a product is
+  still a seed edit or a SQL statement.
+- One currency per order. `priceBasket` refuses a basket that mixes them, which
+  is free today because everything is IRR.
 - Push/SMS notification when an order is accepted, and OTP for guest checkout.
 - Rate limiting is in-memory (`@nestjs/throttler` default store); a multi-instance
   deployment needs a shared one.

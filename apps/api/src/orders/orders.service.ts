@@ -43,6 +43,89 @@ export interface Viewer {
   guestToken?: string;
 }
 
+/** What a product has to look like to be priced into a basket. */
+export interface PricedProduct {
+  id: string;
+  price: Prisma.Decimal;
+  currency: string;
+  unit: string;
+  isActive: boolean;
+}
+
+export interface PricedLine {
+  productId: string;
+  quantity: number;
+  unitPrice: Prisma.Decimal;
+  unit: string;
+}
+
+export interface PricedBasket {
+  lines: PricedLine[];
+  total: Prisma.Decimal;
+  currency: string;
+}
+
+/**
+ * Turns requested lines into priced ones, or explains why it cannot.
+ *
+ * Pure, and separate from `place` so the arithmetic and the refusals can be
+ * tested without a database. Every price comes from the `products` row — the
+ * request supplies a product id and a count, and nothing else is trusted.
+ */
+export function priceBasket(
+  lines: readonly { productId: string; quantity: number }[],
+  products: readonly PricedProduct[],
+): PricedBasket {
+  if (lines.length === 0) {
+    throw new BadRequestException({ code: 'basket_empty', message: MESSAGES.order.basketEmpty });
+  }
+
+  const seen = new Set<string>();
+  for (const line of lines) {
+    if (seen.has(line.productId)) {
+      // The database would refuse this anyway — order_items is unique on
+      // (order_id, product_id) — but a Persian sentence beats a 500.
+      throw new BadRequestException({
+        code: 'duplicate_product',
+        message: MESSAGES.order.duplicateProduct,
+      });
+    }
+    seen.add(line.productId);
+  }
+
+  const byId = new Map(products.map((product) => [product.id, product]));
+  const priced: PricedLine[] = [];
+  let total = new Prisma.Decimal(0);
+
+  for (const line of lines) {
+    const product = byId.get(line.productId);
+    if (!product || !product.isActive) {
+      throw new BadRequestException({
+        code: 'product_unavailable',
+        message: MESSAGES.order.productUnavailable,
+      });
+    }
+
+    priced.push({
+      productId: product.id,
+      quantity: line.quantity,
+      unitPrice: product.price,
+      unit: product.unit,
+    });
+    total = total.add(product.price.mul(line.quantity));
+  }
+
+  const currencies = new Set(priced.map((line) => byId.get(line.productId)!.currency));
+  if (currencies.size > 1) {
+    throw new BadRequestException({
+      code: 'mixed_currency',
+      message: MESSAGES.order.mixedCurrency,
+    });
+  }
+
+  return { lines: priced, total, currency: [...currencies][0] };
+}
+
 export interface PlacedOrder {
   order: OrderDetail;
   /** Returned exactly once, at checkout, and only for a guest. */
@@ -58,7 +141,7 @@ export interface AdminOrderPage {
 
 export interface AdminStats {
   byStatus: Record<OrderStatus, number>;
-  tomorrow: { orders: number; cups: number };
+  tomorrow: { orders: number; quantity: number };
   awaitingReceiptReview: number;
 }
 
@@ -81,13 +164,10 @@ export class OrdersService {
   // --- Placing --------------------------------------------------------------
 
   async place(dto: PlaceOrderDto, actor?: AuthUser): Promise<PlacedOrder> {
-    const product = await this.prisma.product.findUnique({ where: { id: dto.productId } });
-    if (!product || !product.isActive) {
-      throw new BadRequestException({
-        code: 'product_unavailable',
-        message: MESSAGES.order.productUnavailable,
-      });
-    }
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: dto.items.map((line) => line.productId) } },
+    });
+    const basket = priceBasket(dto.items, products);
 
     const deliveryDate = dto.deliveryDate ?? tehranTomorrow();
     if (!isFutureDay(deliveryDate)) {
@@ -98,7 +178,6 @@ export class OrdersService {
     }
 
     const identity = await this.resolveIdentity(dto, actor);
-    const total = product.price.mul(dto.quantity);
 
     // The order number embeds a Tehran date and a per-day counter, so two
     // concurrent checkouts can pick the same one. Rather than lock a counter
@@ -119,21 +198,22 @@ export class OrdersService {
               teamName: identity.teamName,
               deliveryDate: isoToDate(deliveryDate),
               notes: dto.notes || null,
-              currency: product.currency,
-              totalAmount: total,
+              currency: basket.currency,
+              totalAmount: basket.total,
               items: {
-                create: {
-                  productId: product.id,
-                  quantity: dto.quantity,
-                  // Priced from the products table, never from the request.
-                  unitPrice: product.price,
-                },
+                // Priced from the products table, never from the request.
+                create: basket.lines.map((line) => ({
+                  productId: line.productId,
+                  quantity: line.quantity,
+                  unitPrice: line.unitPrice,
+                  unit: line.unit,
+                })),
               },
               payment: {
                 create: {
                   userId: identity.userId,
-                  amount: total,
-                  currency: product.currency,
+                  amount: basket.total,
+                  currency: basket.currency,
                   method: 'receipt_upload',
                   status: 'awaiting_receipt',
                 },
@@ -533,7 +613,7 @@ export class OrdersService {
       byStatus,
       tomorrow: {
         orders: tomorrowOrders.length,
-        cups: tomorrowOrders.reduce(
+        quantity: tomorrowOrders.reduce(
           (sum, order) => sum + order.items.reduce((n, item) => n + item.quantity, 0),
           0,
         ),

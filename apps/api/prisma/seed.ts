@@ -25,6 +25,7 @@ async function main(): Promise<void> {
         'اسپرسوی کوتاه و روشن، با یک برش لیمو روی لبهٔ فنجان. هر فنجان صبح فردا تازه دم می‌شود.',
       price: 129900,
       currency: 'IRR',
+      unit: 'فنجان',
       isActive: true,
       sortOrder: 0,
     },
@@ -35,6 +36,7 @@ async function main(): Promise<void> {
         'اسپرسوی کوتاه و روشن، با یک برش لیمو روی لبهٔ فنجان. هر فنجان صبح فردا تازه دم می‌شود.',
       price: 129900,
       currency: 'IRR',
+      unit: 'فنجان',
       sortOrder: 0,
     },
   });

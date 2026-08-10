@@ -40,6 +40,8 @@ export interface Product {
   description: string | null;
   price: number;
   currency: string;
+  /** What one of this is called — `فنجان` for coffee, `عدد` for a cookie. */
+  unit: string;
   imageUrl: string | null;
   isActive: boolean;
   sortOrder: number;
@@ -62,6 +64,8 @@ export interface OrderItem {
   productId: string;
   productName: string;
   quantity: number;
+  /** Snapshotted with the price, so an old order keeps its own wording. */
+  unit: string;
   unitPrice: number;
   lineTotal: number;
 }
@@ -103,7 +107,11 @@ export interface OrderDetail {
   updatedAt: string;
 
   items: OrderItem[];
-  totalCups: number;
+  /**
+   * Every line's quantity added up. Unit-agnostic on purpose: a basket of two
+   * coffees and three cookies is five things, and the units live per item.
+   */
+  totalQuantity: number;
   productNames: string;
   payment: OrderPayment | null;
 }
@@ -118,9 +126,15 @@ export interface OrderStatusHistoryEntry {
 
 // --- Requests --------------------------------------------------------------
 
-export interface PlaceOrderRequest {
+/** One basket line. A product may appear at most once — merge, do not repeat. */
+export interface OrderLineRequest {
   productId: string;
   quantity: number;
+}
+
+export interface PlaceOrderRequest {
+  /** At least one line; the server prices every one of them itself. */
+  items: OrderLineRequest[];
   notes?: string | null;
   deliveryDate?: string;
   /** Required for a guest; inherited from the profile for a signed-in customer. */
@@ -146,6 +160,8 @@ export interface CreateProductRequest {
   price: number;
   description?: string;
   currency?: string;
+  /** Defaults to `فنجان` when the admin leaves it blank. */
+  unit?: string;
   imageUrl?: string;
   isActive?: boolean;
   sortOrder?: number;
@@ -184,7 +200,8 @@ export interface AdminOrderPage {
 
 export interface AdminStats {
   byStatus: Record<OrderStatus, number>;
-  tomorrow: { orders: number; cups: number };
+  /** `quantity` counts things across every unit, so it is shown as a number. */
+  tomorrow: { orders: number; quantity: number };
   awaitingReceiptReview: number;
 }
 
