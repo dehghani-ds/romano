@@ -136,6 +136,21 @@ export interface PlacedOrder {
   guestToken: string | null;
 }
 
+/**
+ * Adding a product. Only `slug`, `name` and `price` are required — the rest
+ * carry the column defaults (`IRR`, active, sort order 0).
+ */
+export interface CreateProductRequest {
+  slug: string;
+  name: string;
+  price: number;
+  description?: string;
+  currency?: string;
+  imageUrl?: string;
+  isActive?: boolean;
+  sortOrder?: number;
+}
+
 export interface SignUpDetails {
   username: string;
   password: string;

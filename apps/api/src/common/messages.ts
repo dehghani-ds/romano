@@ -43,6 +43,12 @@ export const MESSAGES = {
     alreadyOwned: 'این سفارش قبلاً به یک حساب کاربری وصل شده است.',
   },
 
+  product: {
+    notFound: 'محصول پیدا نشد.',
+    slugTaken: 'محصولی با این شناسه از قبل هست. شناسهٔ دیگری بنویسید.',
+    created: 'محصول ثبت شد.',
+  },
+
   payment: {
     notFound: 'پرداخت این سفارش پیدا نشد.',
     receiptRequired: 'فایل رسید لازم است.',
