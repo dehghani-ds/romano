@@ -37,10 +37,10 @@ else
   echo "!! CI public key not found at $CI_PUBKEY — skipping (GitHub Actions will not be able to connect)"
 fi
 
-# ── Node, PM2, Docker ────────────────────────────────────────────────────────
-NPM_VERSION="$(node -p "require('$REPO_ROOT/package.json').packageManager.split('@')[1]")"
+# ── Node, pnpm, PM2, Docker ──────────────────────────────────────────────────
+PNPM_VERSION="$(node -p "require('$REPO_ROOT/package.json').packageManager.split('@')[1]")"
 
-ssh "$SSH_TARGET" NPM_VERSION="$NPM_VERSION" bash -euo pipefail <<'REMOTE'
+ssh "$SSH_TARGET" PNPM_VERSION="$PNPM_VERSION" bash -euo pipefail <<'REMOTE'
 export DEBIAN_FRONTEND=noninteractive
 
 # package.json pins engines.node >= 22.22.3.
@@ -68,21 +68,27 @@ else
   echo "--> node present: $(node -v)"
 fi
 
-# Node 22 ships npm 10, which rejects this repo's lockfile ("Missing:
-# chokidar@4.0.3 from lock file"). The lockfile is correct; npm 10 just resolves
-# hoisting differently. The API deploy runs `npm ci` here, so it needs the match.
-if [ "$(npm -v | cut -d. -f1)" -lt "${NPM_VERSION%%.*}" ]; then
-  echo "--> upgrading npm $(npm -v) -> $NPM_VERSION"
-  npm install -g "npm@$NPM_VERSION"
+# corepack ships with Node 22 but starts disabled on a fresh install.
+if ! command -v corepack >/dev/null 2>&1; then
+  echo "!! corepack not found alongside node $(node -v) — install a Node 22 build that ships it" >&2
+  exit 1
+fi
+corepack enable
+
+# The API deploy runs `pnpm install --frozen-lockfile` here, so the server's
+# pnpm has to match the version that wrote pnpm-lock.yaml.
+if [ "$(command -v pnpm >/dev/null 2>&1 && pnpm -v || echo 0)" != "$PNPM_VERSION" ]; then
+  echo "--> installing pnpm $PNPM_VERSION"
+  corepack prepare "pnpm@$PNPM_VERSION" --activate
   hash -r
-  echo "--> npm now: $(npm -v)"
+  echo "--> pnpm now: $(pnpm -v)"
 else
-  echo "--> npm present: $(npm -v)"
+  echo "--> pnpm present: $(pnpm -v)"
 fi
 
 if ! command -v pm2 >/dev/null 2>&1; then
   echo "--> installing pm2"
-  npm install -g pm2
+  pnpm install -g pm2
 else
   echo "--> pm2 present: $(pm2 -v | tail -1)"
 fi
@@ -166,6 +172,6 @@ Remaining manual steps:
      deliberately not in the deploy loop. From a checkout, with a tunnel open:
        ssh -f -N -L 55432:127.0.0.1:5432 <ssh-target>
        DATABASE_URL="postgresql://romano:<pw>@127.0.0.1:55432/romano?schema=public" \
-         ADMIN_USERNAME=... ADMIN_PASSWORD=... npm run db:seed
+         ADMIN_USERNAME=... ADMIN_PASSWORD=... pnpm run db:seed
 
 DONE

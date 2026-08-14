@@ -1,8 +1,8 @@
 # Local Postgres for Romano.
 #
-#   npm run db:up        start
-#   npm run db:migrate   apply migrations
-#   npm run db:seed      product + admin account
+#   pnpm db:up        start
+#   pnpm db:migrate   apply migrations
+#   pnpm db:seed      product + admin account
 #
 # Nothing here is production configuration — the password is a local default.
 services:

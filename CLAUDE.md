@@ -25,7 +25,7 @@ which is what the customer is counting and what every screen says.
 
 | Layer | Choice |
 |-------|--------|
-| Monorepo | Nx 23, npm workspaces, single root `package.json` |
+| Monorepo | Nx 23, pnpm workspaces, single root `package.json` |
 | Front end | Angular 22, standalone components, **zoneless**, signals |
 | Backend | NestJS 11, REST/JSON under `/api` |
 | Database | PostgreSQL 17 via Prisma 7 (`prisma-client` generator + `@prisma/adapter-pg`) |
@@ -156,16 +156,16 @@ is never a probe for whether an order exists.
 ## Working commands
 
 ```bash
-npm run db:up                 # Postgres in Docker
-npm run db:migrate            # apply migrations
-npm run db:seed               # product + admin (ADMIN_USERNAME / ADMIN_PASSWORD)
+pnpm db:up                    # Postgres in Docker
+pnpm db:migrate                # apply migrations
+pnpm db:seed                   # product + admin (ADMIN_USERNAME / ADMIN_PASSWORD)
 
-npx nx serve api              # :3000
-npx nx serve web              # :4200
-npx nx serve dashboard        # :4300
+pnpm exec nx serve api        # :3000
+pnpm exec nx serve web        # :4200
+pnpm exec nx serve dashboard  # :4300
 
-npx nx run-many -t build      # all three, must be warning-free
-npx nx run-many -t test
+pnpm exec nx run-many -t build # all three, must be warning-free
+pnpm exec nx run-many -t test
 ```
 
 Copy `.env.example` to `.env` first. Both Angular apps proxy `/api` to :3000 in

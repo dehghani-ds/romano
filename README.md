@@ -17,7 +17,7 @@ account afterwards.
 
 | | |
 |---|---|
-| **Monorepo** | Nx 23 · npm workspaces · one root `package.json` |
+| **Monorepo** | Nx 23 · pnpm workspaces · one root `package.json` |
 | **Front end** | Angular 22 · standalone · zoneless · signals · SCSS design tokens |
 | **Back end** | NestJS 11 · REST/JSON · JWT + argon2 |
 | **Database** | PostgreSQL 17 · Prisma 7 |
@@ -40,18 +40,18 @@ Requires **Node ≥ 22.22.3** and Docker (for Postgres).
 
 ```bash
 cp .env.example .env
-npm install
-npm run db:up          # Postgres 17 in Docker
-npm run db:migrate     # apply migrations
-npm run db:seed        # the Romano product + an admin account
+pnpm install
+pnpm db:up          # Postgres 17 in Docker
+pnpm db:migrate     # apply migrations
+pnpm db:seed        # the Romano product + an admin account
 ```
 
 Then, in three terminals:
 
 ```bash
-npx nx serve api        # http://localhost:3000/api
-npx nx serve web        # http://localhost:4200
-npx nx serve dashboard  # http://localhost:4300
+pnpm exec nx serve api        # http://localhost:3000/api
+pnpm exec nx serve web        # http://localhost:4200
+pnpm exec nx serve dashboard  # http://localhost:4300
 ```
 
 Both Angular apps proxy `/api` to the API in development, so there is no CORS to
@@ -64,7 +64,7 @@ placeholder, and re-seeding never overwrites a password you have already changed
 Production build:
 
 ```bash
-npx nx run-many -t build     # output in dist/apps/{api,web,dashboard}
+pnpm exec nx run-many -t build     # output in dist/apps/{api,web,dashboard}
 ```
 
 ## How it works
