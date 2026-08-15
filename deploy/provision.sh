@@ -77,6 +77,10 @@ corepack enable
 
 # The API deploy runs `pnpm install --frozen-lockfile` here, so the server's
 # pnpm has to match the version that wrote pnpm-lock.yaml.
+#
+# deploy.yml re-applies this same activation on every run, so bumping the pin in
+# package.json no longer needs a provisioning pass. It stays here so that one run
+# of this script leaves a fresh box complete, and so the two never disagree.
 if [ "$(command -v pnpm >/dev/null 2>&1 && pnpm -v || echo 0)" != "$PNPM_VERSION" ]; then
   echo "--> installing pnpm $PNPM_VERSION"
   corepack prepare "pnpm@$PNPM_VERSION" --activate

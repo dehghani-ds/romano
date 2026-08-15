@@ -69,15 +69,17 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Verify server prerequisites
+      - name: Verify server prerequisites, sync pnpm to the pin
         run: |
           # package.json is the one source of truth for the pnpm version, read
           # here exactly as provision.sh reads it.
           PNPM_VERSION="$(node -p "require('./package.json').packageManager.split('@')[1]")"
           ssh "${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}" \
             PNPM_VERSION="$PNPM_VERSION" bash -euo pipefail <<'EOF'
+          # pnpm is deliberately absent from this list — it is the one
+          # prerequisite the deploy repairs rather than refuses, below.
           missing=""
-          for c in node pnpm pm2 docker; do
+          for c in node pm2 docker; do
             command -v "$c" >/dev/null 2>&1 || missing="$missing $c"
           done
           if [ -n "$missing" ]; then
@@ -88,23 +90,44 @@ jobs:
             echo "::error::nginx vhost absent — run ./deploy/provision.sh <host> once before deploying."
             exit 1
           fi
-          # Exact equality, not a major-version floor, because that is the
-          # condition provision.sh installs (corepack prepare --activate on the
-          # pinned version). The two have to test the same thing, or provisioning
-          # reports success and the deploy still fails.
+          # pnpm is repaired here instead of being a reason to refuse. That is
+          # not general provisioning creeping into the deploy loop: pnpm is the
+          # only prerequisite whose correct value is a property of the commit
+          # being deployed rather than of the server, so a deploy is exactly the
+          # thing that knows it. The repair is the same call provision.sh makes.
+          # docker, pm2 and the vhost stay hands-off above — those are server
+          # facts, and a deploy has no business inventing them.
           #
-          # The floor was also wrong about the reason. pnpm-lock.yaml is
-          # lockfileVersion 9.0, which pnpm 10 reads perfectly well. What needs 11
-          # is pnpm-workspace.yaml's allowBuilds, which replaced the
-          # onlyBuiltDependencies family that pnpm 11 removed. An older pnpm does
-          # not reject the unknown key — it ignores it, so argon2 and
-          # @prisma/engines skip their native build scripts, the install looks
-          # clean, and the API only fails once it is running.
-          have="$(pnpm -v)"
+          # It has to match exactly, not clear a major-version floor.
+          # pnpm-lock.yaml is lockfileVersion 9.0, which pnpm 10 reads perfectly
+          # well, so the lockfile is not the constraint. pnpm-workspace.yaml's
+          # allowBuilds is: it replaced the onlyBuiltDependencies family that
+          # pnpm 11 removed, and an older pnpm ignores the unknown key rather
+          # than rejecting it. argon2 and @prisma/engines then skip their native
+          # build scripts, the install looks clean, and the API only fails once
+          # it is already running.
+          have="$(command -v pnpm >/dev/null 2>&1 && pnpm -v || echo none)"
           if [ "$have" != "$PNPM_VERSION" ]; then
-            echo "::error::server pnpm is $have, but this repo pins pnpm@$PNPM_VERSION — run ./deploy/provision.sh <host> to upgrade it."
-            exit 1
+            echo "--> server pnpm is $have; activating pnpm@$PNPM_VERSION"
+            if ! command -v corepack >/dev/null 2>&1; then
+              echo "::error::corepack is missing alongside node $(node -v), and it is what activates pnpm — run ./deploy/provision.sh <host>."
+              exit 1
+            fi
+            # A pnpm from `npm i -g` holds the bin name corepack wants to own,
+            # and enable declines rather than clobbering a file it did not write.
+            corepack enable || {
+              echo "::error::corepack enable failed — a non-corepack pnpm is probably installed in the same bin directory. Run ./deploy/provision.sh <host>."
+              exit 1
+            }
+            corepack prepare "pnpm@$PNPM_VERSION" --activate
+            hash -r
+            have="$(pnpm -v)"
+            if [ "$have" != "$PNPM_VERSION" ]; then
+              echo "::error::activated pnpm@$PNPM_VERSION but pnpm -v still reports $have — something earlier in PATH is shadowing the corepack shim. Run ./deploy/provision.sh <host>."
+              exit 1
+            fi
           fi
+          echo "--> pnpm: $have"
           EOF
 
       - name: Create Remote Directories
