@@ -63,6 +63,18 @@ enum PaymentStatus {
   @@map("payment_status")
 }
 
+/// What the money went on. Deliberately four broad buckets: an admin should be
+/// able to file a receipt without stopping to think, and `other` is a real
+/// answer rather than a fallback for a missing category.
+enum ExpenseCategory {
+  coffee
+  supplies
+  equipment
+  other
+
+  @@map("expense_category")
+}
+
 model User {
   id           String   @id @default(uuid(7)) @db.Uuid
   username     String   @unique
@@ -83,6 +95,7 @@ model User {
   payments         Payment[]            @relation("PaymentCustomer")
   verifiedPayments Payment[]            @relation("PaymentVerifiedBy")
   statusChanges    OrderStatusHistory[]
+  expensesPaid     Expense[]            @relation("ExpensePaidBy")
 
   @@index([role])
   @@map("users")
@@ -214,4 +227,44 @@ model OrderStatusHistory {
 
   @@index([orderId, createdAt(sort: Desc)])
   @@map("order_status_history")
+}
+
+/// What Romano costs to run: a bag of beans, a sleeve of cups, a new grinder.
+///
+/// This is a shared ledger, not a per-admin one. Every admin sees every row and
+/// may correct any of them, because the point is one honest book rather than
+/// several private ones. What the book does *not* do is split anything: an
+/// expense has exactly one payer, and who ultimately owes whom is settled
+/// outside this table.
+///
+/// Nothing here touches an order. An expense is money going out; a payment is
+/// money coming in, and the two are never netted against each other.
+model Expense {
+  id       String          @id @default(uuid(7)) @db.Uuid
+  title    String
+  amount   Decimal         @db.Decimal(12, 2)
+  currency String          @default("IRR")
+  category ExpenseCategory @default(other)
+
+  /// The Tehran day the money was spent — a day, not an instant, because a
+  /// receipt is dated and never timed.
+  spentAt DateTime @map("spent_at") @db.Date
+  note    String?
+
+  /// The admin who actually paid — not necessarily the one who typed it in.
+  /// One admin records what a colleague bought often enough that the two must
+  /// not be conflated, and fixing the payer afterwards is an ordinary edit.
+  paidById String @map("paid_by") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  /// Restrict, not SetNull: the column is NOT NULL, and an expense whose payer
+  /// vanished is a hole in the accounts rather than a tidy null.
+  paidBy User @relation("ExpensePaidBy", fields: [paidById], references: [id], onDelete: Restrict)
+
+  @@index([spentAt(sort: Desc)])
+  @@index([paidById])
+  @@index([category])
+  @@map("expenses")
 }

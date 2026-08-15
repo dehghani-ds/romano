@@ -46,6 +46,7 @@ apps/
     src/generated/prisma/        Generated client (committed, compiled with the app)
     src/auth/                    Username + password, JWT, guards
     src/orders/                  OrdersService — the whole lifecycle lives here
+    src/expenses/                ExpensesService — the admin expense ledger
     src/common/messages.ts       Every Persian sentence a user can see
   web/                           Angular — customer + guest, :4200
   dashboard/                     Angular — admin only, :4300
@@ -122,6 +123,32 @@ keys, and CHECK constraints for the facts that must hold no matter which code
 path wrote the row — including `orders_owner_ck`, which guarantees every order
 has either a `user_id` or a `guest_token`.
 
+### 2b. Expenses are a ledger, not an order
+
+`apps/api/src/expenses/` records what Romano costs to run — beans, cups, a new
+grinder. It touches nothing else: an expense is money going out, a payment is
+money coming in, and the two are never netted against each other.
+
+It is a *shared* book. Every admin reads every row and may correct or delete any
+of them, because the alternative is several private lists. Three rules live in
+`ExpensesService` and belong nowhere else:
+
+- **The payer is chosen, not assumed.** `paidById` defaults to the signed-in
+  admin, but one admin filing what a colleague paid is ordinary — and fixing the
+  payer afterwards is an ordinary edit, unlike a product's slug.
+- **The payer must be an active admin**, checked only when it is actually
+  changing, so an admin who has since left does not freeze their old rows.
+- **`spentAt` is never in the future**, in Tehran days. This is *not* a CHECK
+  constraint on purpose: it is a judgement about today, and the database would
+  re-evaluate it on every later UPDATE.
+
+What is in the database, in `*_expense_integrity_constraints/`: `amount > 0`,
+title and note lengths, and the currency shape.
+
+Deleting is a real delete — nothing references `expenses`, so a row entered
+twice leaves no hole when one goes. The confirmation that stops an accident is
+in the dashboard, inline in the row.
+
 ### 3. Angular conventions
 
 - Standalone components only — no NgModules.
@@ -193,6 +220,15 @@ update users set role = 'admin' where username = 'their_username';
   still a seed edit or a SQL statement.
 - One currency per order. `priceBasket` refuses a basket that mixes them, which
   is free today because everything is IRR.
+- Splitting an expense between admins, and anything that follows from it —
+  who-owes-whom, settling up, per-payer balances. The ledger records one payer
+  per row and stops there; the division is done outside the app.
+- A Jalali date picker. `تاریخ خرج` is a native `<input type="date">`, so the
+  picker itself is Gregorian; the field echoes the Jalali reading underneath it.
+- Attaching a receipt image to an expense. `payments` has that machinery,
+  `expenses` does not.
+- Filtering or paging the expense ledger. It is one unpaginated list, because
+  the page sums what it is given and a total over a partial page would be a lie.
 - Push/SMS notification when an order is accepted, and OTP for guest checkout.
 - Rate limiting is in-memory (`@nestjs/throttler` default store); a multi-instance
   deployment needs a shared one.

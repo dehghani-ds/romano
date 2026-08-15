@@ -52,6 +52,13 @@ export const MESSAGES = {
     created: 'محصول ثبت شد.',
   },
 
+  expense: {
+    notFound: 'این هزینه پیدا نشد.',
+    futureDateRejected: 'تاریخ خرج نمی‌تواند در آینده باشد.',
+    payerNotAdmin: 'پرداخت‌کننده باید یکی از مدیران فعال باشد.',
+    deleted: 'هزینه حذف شد.',
+  },
+
   payment: {
     notFound: 'پرداخت این سفارش پیدا نشد.',
     receiptRequired: 'فایل رسید لازم است.',

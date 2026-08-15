@@ -47,3 +47,17 @@ export type Payment = Prisma.PaymentModel
  * 
  */
 export type OrderStatusHistory = Prisma.OrderStatusHistoryModel
+/**
+ * Model Expense
+ * What Romano costs to run: a bag of beans, a sleeve of cups, a new grinder.
+ * 
+ * This is a shared ledger, not a per-admin one. Every admin sees every row and
+ * may correct any of them, because the point is one honest book rather than
+ * several private ones. What the book does *not* do is split anything: an
+ * expense has exactly one payer, and who ultimately owes whom is settled
+ * outside this table.
+ * 
+ * Nothing here touches an order. An expense is money going out; a payment is
+ * money coming in, and the two are never netted against each other.
+ */
+export type Expense = Prisma.ExpenseModel

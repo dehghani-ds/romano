@@ -12,6 +12,7 @@ export type OrderStatus = 'pending' | 'in_progress' | 'done' | 'cancelled';
 export type PaymentStatus = 'awaiting_receipt' | 'submitted' | 'verified' | 'rejected';
 export type PaymentMethod = 'receipt_upload' | 'ipg' | 'cash';
 export type UserRole = 'customer' | 'admin';
+export type ExpenseCategory = 'coffee' | 'supplies' | 'equipment' | 'other';
 
 /** Everyone is here today. The field is free text so they need not stay. */
 export const DEFAULT_COMPANY_NAME = 'دیجی‌پی';
@@ -45,6 +46,34 @@ export interface Product {
   imageUrl: string | null;
   isActive: boolean;
   sortOrder: number;
+}
+
+/** The admin an expense is attributed to — four fields, no more. */
+export interface ExpensePayer {
+  id: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+}
+
+/**
+ * One line in the expense ledger: money that went out so Romano could run.
+ *
+ * It has exactly one payer. Splitting an expense across admins is not modelled
+ * here and is settled outside the app.
+ */
+export interface Expense {
+  id: string;
+  title: string;
+  amount: number;
+  currency: string;
+  category: ExpenseCategory;
+  /** Gregorian `YYYY-MM-DD` on the wire, shown as a Jalali date. */
+  spentAt: string;
+  note: string | null;
+  paidBy: ExpensePayer;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface UserProfile {
@@ -185,6 +214,40 @@ export interface UpdateProductRequest {
   sortOrder?: number;
 }
 
+/**
+ * Recording an expense. Only `title` and `amount` are required: the category
+ * falls back to `other`, the date to today in Tehran, and the payer to whoever
+ * is signed in.
+ */
+export interface CreateExpenseRequest {
+  title: string;
+  amount: number;
+  category?: ExpenseCategory;
+  /** Gregorian `YYYY-MM-DD`. Never in the future — the API refuses it. */
+  spentAt?: string;
+  note?: string;
+  /** Another admin, when you are filing what a colleague paid for. */
+  paidById?: string;
+  currency?: string;
+}
+
+/**
+ * Correcting an expense. Every field is optional and absence means "leave it" —
+ * `note` takes `null` to clear it.
+ *
+ * Unlike a product, nothing here is off-limits: `paidById` is editable because
+ * filing a receipt under the wrong colleague is the mistake most worth undoing.
+ */
+export interface UpdateExpenseRequest {
+  title?: string;
+  amount?: number;
+  category?: ExpenseCategory;
+  spentAt?: string;
+  note?: string | null;
+  paidById?: string;
+  currency?: string;
+}
+
 export interface SignUpDetails {
   username: string;
   password: string;
@@ -263,3 +326,42 @@ export const PAYMENT_STATUS_META: Record<PaymentStatus, { label: string; hint: s
 };
 
 export const ORDER_STATUSES: OrderStatus[] = ['pending', 'in_progress', 'done', 'cancelled'];
+
+/**
+ * Expense categories, with the icon each is read by — a category is never
+ * carried by colour, and in the ledger it is never carried by the icon alone
+ * either: the label sits beside it.
+ */
+export const EXPENSE_CATEGORY_META: Record<
+  ExpenseCategory,
+  { label: string; hint: string; icon: string }
+> = {
+  coffee: {
+    label: 'قهوه',
+    hint: 'دان، پودر، شیر — هرچه در فنجان می‌رود.',
+    icon: 'coffee',
+  },
+  supplies: {
+    label: 'لوازم مصرفی',
+    hint: 'لیوان، درب، دستمال، شکر.',
+    icon: 'cup',
+  },
+  equipment: {
+    label: 'تجهیزات',
+    hint: 'دستگاه، آسیاب، ابزار — چیزی که می‌ماند.',
+    icon: 'wrench',
+  },
+  other: {
+    label: 'متفرقه',
+    hint: 'هر خرجی که در سه دستهٔ بالا نمی‌گنجد.',
+    icon: 'tag',
+  },
+};
+
+export const EXPENSE_CATEGORIES: ExpenseCategory[] = ['coffee', 'supplies', 'equipment', 'other'];
+
+/** `علی رضایی` — the payer as a person reads them, username as the fallback. */
+export function formatPayerName(payer: ExpensePayer): string {
+  const name = `${payer.firstName} ${payer.lastName}`.trim();
+  return name || payer.username;
+}
