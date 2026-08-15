@@ -24,6 +24,17 @@ const DATE_TIME = new Intl.DateTimeFormat(LOCALE, {
   minute: '2-digit',
 });
 
+/**
+ * Year included, unlike the delivery formatter. A delivery is always within a
+ * day or two of now, so its year is noise; a ledger is read months later, and a
+ * date without a year there is a question rather than an answer.
+ */
+const FULL_DATE = new Intl.DateTimeFormat(LOCALE, {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+
 const NUMBER = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 0 });
 
 /** `2026-07-26` → `یکشنبه ۴ مرداد`, with `فردا · ` prefixed when it applies. */
@@ -42,6 +53,11 @@ export function formatDeliveryDate(isoDate: string): string {
 
 export function formatDateTime(iso: string): string {
   return DATE_TIME.format(new Date(iso));
+}
+
+/** `2026-08-15` → `۲۴ مرداد ۱۴۰۵`. A plain calendar day, no relative wording. */
+export function formatDate(isoDate: string): string {
+  return FULL_DATE.format(parseDateOnly(isoDate));
 }
 
 /** Tomorrow as `YYYY-MM-DD`, in the browser's own timezone. */

@@ -44,3 +44,13 @@ export const PaymentStatus = {
 } as const
 
 export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus]
+
+
+export const ExpenseCategory = {
+  coffee: 'coffee',
+  supplies: 'supplies',
+  equipment: 'equipment',
+  other: 'other'
+} as const
+
+export type ExpenseCategory = (typeof ExpenseCategory)[keyof typeof ExpenseCategory]

@@ -29,7 +29,13 @@ export type IconName =
   | 'search'
   | 'inbox'
   | 'copy'
-  | 'pencil';
+  | 'pencil'
+  | 'trash'
+  | 'wallet'
+  | 'cup'
+  | 'wrench'
+  | 'tag'
+  | 'calendar';
 
 /**
  * Inline SVG icons — one family, 1.75px stroke, 24px grid.
@@ -72,6 +78,17 @@ const PATHS: Record<IconName, string> = {
   copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4.5A1.5 1.5 0 0 1 3 13.5v-9A1.5 1.5 0 0 1 4.5 3h9A1.5 1.5 0 0 1 15 4.5V5"/>',
   pencil:
     '<path d="m4 20 .8-4 11-11a2.3 2.3 0 0 1 3.2 3.2l-11 11L4 20Z"/><path d="m14.5 6.5 3 3"/>',
+  trash:
+    '<path d="M4 7h16"/><path d="M9.5 7V4.5h5V7"/><path d="M6.5 7l.9 12.1A1.5 1.5 0 0 0 8.9 20.5h6.2a1.5 1.5 0 0 0 1.5-1.4L17.5 7"/><path d="M10.5 11v5.5M13.5 11v5.5"/>',
+  wallet:
+    '<path d="M3.5 7.5A2 2 0 0 1 5.5 5.5H17a1.5 1.5 0 0 1 1.5 1.5v1"/><path d="M3.5 7.5v9A2 2 0 0 0 5.5 18.5H18a2 2 0 0 0 2-2v-7a1.5 1.5 0 0 0-1.5-1.5H5.5a2 2 0 0 1-2-2Z"/><path d="M16.5 13h.01"/>',
+  /* A paper cup — supplies, as distinct from the `coffee` mug that is the drink. */
+  cup: '<path d="M6 5h12l-1.3 14.1a1.6 1.6 0 0 1-1.6 1.4H8.9a1.6 1.6 0 0 1-1.6-1.4L6 5Z"/><path d="M6.6 10h10.8"/>',
+  wrench:
+    '<path d="M15.2 3.4a5.5 5.5 0 0 0-6.4 7.3L3.6 15.9a2 2 0 0 0 2.8 2.8l5.2-5.2a5.5 5.5 0 0 0 7.3-6.4l-3 3-2.8-2.8 3-3Z"/>',
+  tag: '<path d="M4 11.4V5.5A1.5 1.5 0 0 1 5.5 4h5.9a1.5 1.5 0 0 1 1 .4l7 7a1.5 1.5 0 0 1 0 2.2l-5.8 5.8a1.5 1.5 0 0 1-2.2 0l-7-7a1.5 1.5 0 0 1-.4-1Z"/><path d="M8.5 8.5h.01"/>',
+  calendar:
+    '<rect x="3.5" y="5.5" width="17" height="15" rx="2"/><path d="M3.5 10h17"/><path d="M8 3v5M16 3v5"/>',
 };
 
 @Component({

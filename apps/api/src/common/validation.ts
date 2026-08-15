@@ -26,6 +26,19 @@ export const MAX_UNIT_LENGTH = 16;
 export const MAX_PRODUCT_PRICE = 100_000_000;
 export const MIN_PRODUCT_PRICE = 0;
 
+/**
+ * An expense is not a price. A product costs what a cup costs; an expense can be
+ * a whole espresso machine, so the typo guard sits an order of magnitude higher
+ * — still far below what `Decimal(12, 2)` would take.
+ *
+ * The minimum is strictly above zero, unlike a product's: a free product is a
+ * real thing to sell, a free expense is a row someone forgot to fill in.
+ */
+export const MAX_EXPENSE_AMOUNT = 1_000_000_000;
+export const MIN_EXPENSE_AMOUNT = 0.01;
+export const MAX_EXPENSE_TITLE_LENGTH = 120;
+export const MAX_EXPENSE_NOTE_LENGTH = 500;
+
 /** Everyone is here today. The column is free text so they need not stay. */
 export const DEFAULT_COMPANY_NAME = 'دیجی‌پی';
 
@@ -58,6 +71,13 @@ export const FIELD_ERRORS = {
   productCurrency: 'واحد پول باید یک کد سه‌حرفی مثل IRR باشد.',
   productImageUrl: 'نشانی تصویر باید یک آدرس کامل با http یا https باشد.',
   productSortOrder: 'ترتیب نمایش باید عددی بین ۰ تا ۹۹۹ باشد.',
+  expenseTitle: 'بابت چه چیزی خرج شد؟ کوتاه بنویسید (۱ تا ۱۲۰ نویسه).',
+  expenseAmount: 'مبلغ را به ریال و به صورت عدد بنویسید — بیشتر از صفر و کمتر از ۱٬۰۰۰٬۰۰۰٬۰۰۰.',
+  expenseCategory: 'دستهٔ انتخاب‌شده معتبر نیست.',
+  expenseSpentAt: 'تاریخ خرج را به شکل ۲۰۲۶-۰۸-۱۵ بنویسید.',
+  expenseNote: 'توضیح نباید بیشتر از ۵۰۰ نویسه باشد.',
+  expensePaidBy: 'پرداخت‌کننده انتخاب نشده است.',
+  expenseCurrency: 'واحد پول باید یک کد سه‌حرفی مثل IRR باشد.',
 } as const;
 
 /** Receipts: same limits the Supabase bucket used to enforce. */
