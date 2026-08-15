@@ -71,7 +71,11 @@ jobs:
 
       - name: Verify server prerequisites
         run: |
-          ssh "${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}" bash -euo pipefail <<'EOF'
+          # package.json is the one source of truth for the pnpm version, read
+          # here exactly as provision.sh reads it.
+          PNPM_VERSION="$(node -p "require('./package.json').packageManager.split('@')[1]")"
+          ssh "${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}" \
+            PNPM_VERSION="$PNPM_VERSION" bash -euo pipefail <<'EOF'
           missing=""
           for c in node pnpm pm2 docker; do
             command -v "$c" >/dev/null 2>&1 || missing="$missing $c"
@@ -84,8 +88,21 @@ jobs:
             echo "::error::nginx vhost absent — run ./deploy/provision.sh <host> once before deploying."
             exit 1
           fi
-          if [ "$(pnpm -v | cut -d. -f1)" -lt 11 ]; then
-            echo "::error::server pnpm is $(pnpm -v); the lockfile needs pnpm 11+ — run ./deploy/provision.sh <host> to upgrade it."
+          # Exact equality, not a major-version floor, because that is the
+          # condition provision.sh installs (corepack prepare --activate on the
+          # pinned version). The two have to test the same thing, or provisioning
+          # reports success and the deploy still fails.
+          #
+          # The floor was also wrong about the reason. pnpm-lock.yaml is
+          # lockfileVersion 9.0, which pnpm 10 reads perfectly well. What needs 11
+          # is pnpm-workspace.yaml's allowBuilds, which replaced the
+          # onlyBuiltDependencies family that pnpm 11 removed. An older pnpm does
+          # not reject the unknown key — it ignores it, so argon2 and
+          # @prisma/engines skip their native build scripts, the install looks
+          # clean, and the API only fails once it is running.
+          have="$(pnpm -v)"
+          if [ "$have" != "$PNPM_VERSION" ]; then
+            echo "::error::server pnpm is $have, but this repo pins pnpm@$PNPM_VERSION — run ./deploy/provision.sh <host> to upgrade it."
             exit 1
           fi
           EOF
