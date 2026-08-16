@@ -145,6 +145,46 @@ export interface AdminStats {
   awaitingReceiptReview: number;
 }
 
+/** What a payment gateway is told about an order it is about to charge for. */
+export interface GatewayPaymentTarget {
+  orderId: string;
+  orderNumber: string;
+  amount: number;
+  currency: string;
+  /** Passed to the gateway so the payer's saved cards are offered to them. */
+  contactMobile: string;
+  /** Becomes the description the payer sees on their statement. */
+  productNames: string;
+  /** A session already open on this payment, if there is one. */
+  openSession: { trackId: string; requestedAt: Date } | null;
+}
+
+/** The payment a returning gateway session points at. */
+export interface GatewaySession {
+  orderId: string;
+  orderNumber: string;
+  amount: number;
+  currency: string;
+  /** True when this session has already been settled — a replayed callback. */
+  isVerified: boolean;
+}
+
+/**
+ * What the gateway concluded. `paid: false` covers everything from "the payer
+ * pressed cancel" to "insufficient funds": the distinction matters to the
+ * sentence they read, not to the row.
+ */
+export type GatewayOutcome =
+  | {
+      paid: true;
+      /** The bank's reference number, when the gateway returned one. */
+      reference: string | null;
+      /** Masked, e.g. `62741****44`. Never a payable card number. */
+      cardNumber: string | null;
+      paidAt: Date;
+    }
+  | { paid: false };
+
 /**
  * Orders, payments and the whole lifecycle.
  *
@@ -421,6 +461,11 @@ export class OrdersService {
           update: {
             receiptPath: key,
             status: 'submitted',
+            // Whichever way this payment started, it is a card-to-card one now.
+            // The gateway session is deliberately left in place: an online
+            // payment already in flight must still be able to settle, and it
+            // will set the method back to `ipg` when it does.
+            method: 'receipt_upload',
             paidAt: order.payment.paidAt ?? new Date(),
             // Re-uploading clears any earlier verdict — it is a new receipt.
             rejectReason: null,
@@ -451,6 +496,136 @@ export class OrdersService {
     }
 
     return { stream: this.receipts.openStream(key), contentType: this.receipts.contentTypeOf(key) };
+  }
+
+  // --- Online payment -------------------------------------------------------
+  //
+  // The Zibal protocol lives in `../payments`, which owns every HTTP call and
+  // every one of the gateway's numbers. What it does *not* own is the `payments`
+  // table: these three methods are the whole of its write access, so the rule
+  // that this service is the only thing that writes an order's payment survives
+  // a second payment method.
+
+  /**
+   * Reads back everything a gateway needs about an order, refusing the orders
+   * that must not be paid at all.
+   *
+   * The refusals here are lifecycle ones — closed, missing, already settled. A
+   * gateway's own limits (a minimum amount, the currencies it handles) are not
+   * checked here, because they belong to whichever gateway is asking.
+   */
+  async loadForGatewayPayment(orderId: string, viewer: Viewer): Promise<GatewayPaymentTarget> {
+    const order = await this.loadViewable(orderId, viewer);
+
+    if (order.status === 'done' || order.status === 'cancelled') {
+      throw new BadRequestException({
+        code: 'order_closed',
+        message: MESSAGES.payment.orderClosed(order.status),
+      });
+    }
+    if (!order.payment) {
+      throw new NotFoundException({ code: 'payment_not_found', message: MESSAGES.payment.notFound });
+    }
+    if (order.payment.status === 'verified') {
+      throw new ConflictException({
+        code: 'payment_already_verified',
+        message: MESSAGES.payment.alreadyPaid,
+      });
+    }
+
+    const detail = toOrderDetail(order);
+
+    return {
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      amount: order.payment.amount.toNumber(),
+      currency: order.payment.currency,
+      contactMobile: order.contactMobile,
+      productNames: detail.productNames,
+      // Whether this is still usable is the gateway's call — only it knows how
+      // long one of its sessions lives.
+      openSession:
+        order.payment.gatewayTrackId && order.payment.gatewayRequestedAt
+          ? {
+              trackId: order.payment.gatewayTrackId,
+              requestedAt: order.payment.gatewayRequestedAt,
+            }
+          : null,
+    };
+  }
+
+  /**
+   * Finds the payment a gateway session belongs to.
+   *
+   * There is no `Viewer` here, and that is the point: this is the callback path,
+   * where the customer arrives back on a redirect carrying no bearer token and
+   * no guest token. The trackId is the only handle, which is why it is unique
+   * and why the caller must confirm the payment with the gateway before
+   * believing anything else that came back with it.
+   */
+  async findGatewaySession(trackId: string): Promise<GatewaySession | null> {
+    const payment = await this.prisma.payment.findUnique({
+      where: { gatewayTrackId: trackId },
+      select: {
+        amount: true,
+        currency: true,
+        status: true,
+        order: { select: { id: true, orderNumber: true } },
+      },
+    });
+
+    if (!payment) return null;
+
+    return {
+      orderId: payment.order.id,
+      orderNumber: payment.order.orderNumber,
+      amount: payment.amount.toNumber(),
+      currency: payment.currency,
+      isVerified: payment.status === 'verified',
+    };
+  }
+
+  /** Records that a gateway session has been opened for this order. */
+  async openGatewaySession(orderId: string, trackId: string): Promise<void> {
+    await this.prisma.payment.update({
+      where: { orderId },
+      data: {
+        method: 'ipg',
+        gatewayTrackId: trackId,
+        gatewayRequestedAt: new Date(),
+      },
+    });
+  }
+
+  /**
+   * Applies what the gateway said became of a session.
+   *
+   * A paid session is verified outright, with no `verifiedById`: nobody approved
+   * it, the bank did, and inventing an admin for the audit trail would be a lie.
+   * It also clears any earlier rejection — a receipt that was turned down stops
+   * being the story of this payment once the money has actually arrived.
+   *
+   * A session that failed gives its trackId back rather than keeping it. The
+   * money did not move, so there is nothing to preserve, and holding a dead
+   * session would leave the customer looking at a "still open" payment they
+   * cannot finish. Clearing it lets them press pay again straight away.
+   */
+  async settleGatewaySession(trackId: string, outcome: GatewayOutcome): Promise<void> {
+    await this.prisma.payment.update({
+      where: { gatewayTrackId: trackId },
+      data: outcome.paid
+        ? {
+            method: 'ipg',
+            status: 'verified',
+            reference: outcome.reference,
+            gatewayCardNumber: outcome.cardNumber,
+            paidAt: outcome.paidAt,
+            verifiedAt: new Date(),
+            verifiedById: null,
+            rejectReason: null,
+          }
+        : { gatewayTrackId: null, gatewayRequestedAt: null },
+    });
   }
 
   /** Attaches a guest order to the account of whoever placed it. */

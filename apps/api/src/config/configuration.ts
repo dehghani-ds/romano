@@ -15,6 +15,23 @@ export interface AppConfig {
     refreshTtl: string;
   };
   uploadDir: string;
+  /** Where the customer site lives, so the gateway can send a payer back to it. */
+  webBaseUrl: string;
+  zibal: ZibalConfig;
+}
+
+/**
+ * The Zibal IPG.
+ *
+ * `merchant` is the only required value and it has no default on purpose:
+ * online payment is a feature that has to be turned on with a real credential,
+ * and an empty string is the honest way to say "not configured". The API then
+ * offers receipt upload alone rather than a button that fails at the bank.
+ */
+export interface ZibalConfig {
+  merchant: string;
+  baseUrl: string;
+  callbackUrl: string;
 }
 
 function required(name: string): string {
@@ -40,5 +57,17 @@ export function configuration(): AppConfig {
       refreshTtl: process.env['JWT_REFRESH_TTL'] ?? '30d',
     },
     uploadDir: resolve(process.env['UPLOAD_DIR'] ?? './apps/api/uploads'),
+    // Trailing slashes are stripped here rather than at every join site, so the
+    // redirect back from the gateway cannot come out with `//orders/…`.
+    webBaseUrl: trimSlashes(process.env['WEB_BASE_URL'] ?? 'http://localhost:4200'),
+    zibal: {
+      merchant: process.env['ZIBAL_MERCHANT'] ?? '',
+      baseUrl: trimSlashes(process.env['ZIBAL_BASE_URL'] ?? 'https://gateway.zibal.ir'),
+      callbackUrl: process.env['ZIBAL_CALLBACK_URL'] ?? '',
+    },
   };
+}
+
+function trimSlashes(url: string): string {
+  return url.trim().replace(/\/+$/, '');
 }

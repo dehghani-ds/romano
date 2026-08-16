@@ -108,6 +108,11 @@ export interface OrderPayment {
   reference: string | null;
   rejectReason: string | null;
   paidAt: string | null;
+  /**
+   * Masked card an online payment was made with (`62741****44`) — the detail
+   * that lets someone match this order to a line on their bank statement.
+   */
+  cardNumber: string | null;
 }
 
 /** Everything a list, card or detail page needs about one order. */
@@ -324,6 +329,85 @@ export const PAYMENT_STATUS_META: Record<PaymentStatus, { label: string; hint: s
   verified: { label: 'پرداخت تأیید شد', hint: 'مدیر پرداخت را تأیید کرده است.' },
   rejected: { label: 'رسید رد شد', hint: 'رسید درست را دوباره بارگذاری کنید.' },
 };
+
+/** The two ways a customer can settle an order. `cash` is admin-side only. */
+export type PaymentChoice = 'online' | 'receipt';
+
+export const PAYMENT_CHOICE_META: Record<
+  PaymentChoice,
+  { label: string; hint: string; icon: string }
+> = {
+  online: {
+    label: 'پرداخت اینترنتی',
+    hint: 'با کارت بانکی، از طریق درگاه زیبال. تأیید آنی است.',
+    icon: 'credit-card',
+  },
+  receipt: {
+    label: 'کارت‌به‌کارت',
+    hint: 'مبلغ را واریز کنید و رسیدش را بارگذاری کنید. مدیر بررسی می‌کند.',
+    icon: 'receipt',
+  },
+};
+
+/**
+ * How a payment reads on screen, given both its status *and* the method it was
+ * made with.
+ *
+ * `PAYMENT_STATUS_META` alone cannot do this: `awaiting_receipt` is the resting
+ * state for every payment, and "هنوز رسیدی بارگذاری نشده" is simply the wrong
+ * sentence for someone who has just come back from their bank without paying.
+ * Status is never carried by colour here either — every branch returns an icon
+ * and words.
+ */
+export function paymentStateMeta(
+  payment: Pick<OrderPayment, 'status' | 'method'> | null,
+): { label: string; hint: string; icon: string } {
+  if (!payment) return { label: 'بدون پرداخت', hint: 'برای این سفارش پرداختی ثبت نشده است.', icon: 'receipt' };
+
+  if (payment.method === 'ipg') {
+    switch (payment.status) {
+      case 'verified':
+        return {
+          label: 'پرداخت اینترنتی تأیید شد',
+          hint: 'مبلغ از طریق درگاه پرداخت شد.',
+          icon: 'check-circle',
+        };
+      case 'awaiting_receipt':
+        return {
+          label: 'پرداخت ناتمام ماند',
+          hint: 'پرداخت اینترنتی کامل نشد. دوباره تلاش کنید یا رسید کارت‌به‌کارت را بارگذاری کنید.',
+          icon: 'alert',
+        };
+      default:
+        break;
+    }
+  }
+
+  const meta = PAYMENT_STATUS_META[payment.status];
+  const icon =
+    payment.status === 'verified'
+      ? 'check-circle'
+      : payment.status === 'rejected'
+        ? 'x-circle'
+        : 'receipt';
+
+  return { ...meta, icon };
+}
+
+/** Whether the site should offer the online option, and the floor Zibal enforces. */
+export interface PaymentOptions {
+  onlineEnabled: boolean;
+  /** Zibal refuses anything under this, in the currency below. */
+  minAmount: number;
+  currency: string;
+}
+
+/** The answer to "open a payment session": where to send the browser. */
+export interface StartedPayment {
+  redirectUrl: string;
+  trackId: string;
+  amount: number;
+}
 
 export const ORDER_STATUSES: OrderStatus[] = ['pending', 'in_progress', 'done', 'cancelled'];
 

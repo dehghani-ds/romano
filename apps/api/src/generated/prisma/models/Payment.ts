@@ -44,6 +44,9 @@ export type PaymentMinAggregateOutputType = {
   status: $Enums.PaymentStatus | null
   receiptPath: string | null
   reference: string | null
+  gatewayTrackId: string | null
+  gatewayRequestedAt: Date | null
+  gatewayCardNumber: string | null
   paidAt: Date | null
   verifiedById: string | null
   verifiedAt: Date | null
@@ -62,6 +65,9 @@ export type PaymentMaxAggregateOutputType = {
   status: $Enums.PaymentStatus | null
   receiptPath: string | null
   reference: string | null
+  gatewayTrackId: string | null
+  gatewayRequestedAt: Date | null
+  gatewayCardNumber: string | null
   paidAt: Date | null
   verifiedById: string | null
   verifiedAt: Date | null
@@ -80,6 +86,9 @@ export type PaymentCountAggregateOutputType = {
   status: number
   receiptPath: number
   reference: number
+  gatewayTrackId: number
+  gatewayRequestedAt: number
+  gatewayCardNumber: number
   paidAt: number
   verifiedById: number
   verifiedAt: number
@@ -108,6 +117,9 @@ export type PaymentMinAggregateInputType = {
   status?: true
   receiptPath?: true
   reference?: true
+  gatewayTrackId?: true
+  gatewayRequestedAt?: true
+  gatewayCardNumber?: true
   paidAt?: true
   verifiedById?: true
   verifiedAt?: true
@@ -126,6 +138,9 @@ export type PaymentMaxAggregateInputType = {
   status?: true
   receiptPath?: true
   reference?: true
+  gatewayTrackId?: true
+  gatewayRequestedAt?: true
+  gatewayCardNumber?: true
   paidAt?: true
   verifiedById?: true
   verifiedAt?: true
@@ -144,6 +159,9 @@ export type PaymentCountAggregateInputType = {
   status?: true
   receiptPath?: true
   reference?: true
+  gatewayTrackId?: true
+  gatewayRequestedAt?: true
+  gatewayCardNumber?: true
   paidAt?: true
   verifiedById?: true
   verifiedAt?: true
@@ -249,6 +267,9 @@ export type PaymentGroupByOutputType = {
   status: $Enums.PaymentStatus
   receiptPath: string | null
   reference: string | null
+  gatewayTrackId: string | null
+  gatewayRequestedAt: Date | null
+  gatewayCardNumber: string | null
   paidAt: Date | null
   verifiedById: string | null
   verifiedAt: Date | null
@@ -290,6 +311,9 @@ export type PaymentWhereInput = {
   status?: Prisma.EnumPaymentStatusFilter<"Payment"> | $Enums.PaymentStatus
   receiptPath?: Prisma.StringNullableFilter<"Payment"> | string | null
   reference?: Prisma.StringNullableFilter<"Payment"> | string | null
+  gatewayTrackId?: Prisma.StringNullableFilter<"Payment"> | string | null
+  gatewayRequestedAt?: Prisma.DateTimeNullableFilter<"Payment"> | Date | string | null
+  gatewayCardNumber?: Prisma.StringNullableFilter<"Payment"> | string | null
   paidAt?: Prisma.DateTimeNullableFilter<"Payment"> | Date | string | null
   verifiedById?: Prisma.UuidNullableFilter<"Payment"> | string | null
   verifiedAt?: Prisma.DateTimeNullableFilter<"Payment"> | Date | string | null
@@ -311,6 +335,9 @@ export type PaymentOrderByWithRelationInput = {
   status?: Prisma.SortOrder
   receiptPath?: Prisma.SortOrderInput | Prisma.SortOrder
   reference?: Prisma.SortOrderInput | Prisma.SortOrder
+  gatewayTrackId?: Prisma.SortOrderInput | Prisma.SortOrder
+  gatewayRequestedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  gatewayCardNumber?: Prisma.SortOrderInput | Prisma.SortOrder
   paidAt?: Prisma.SortOrderInput | Prisma.SortOrder
   verifiedById?: Prisma.SortOrderInput | Prisma.SortOrder
   verifiedAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -325,6 +352,7 @@ export type PaymentOrderByWithRelationInput = {
 export type PaymentWhereUniqueInput = Prisma.AtLeast<{
   id?: string
   orderId?: string
+  gatewayTrackId?: string
   AND?: Prisma.PaymentWhereInput | Prisma.PaymentWhereInput[]
   OR?: Prisma.PaymentWhereInput[]
   NOT?: Prisma.PaymentWhereInput | Prisma.PaymentWhereInput[]
@@ -335,6 +363,8 @@ export type PaymentWhereUniqueInput = Prisma.AtLeast<{
   status?: Prisma.EnumPaymentStatusFilter<"Payment"> | $Enums.PaymentStatus
   receiptPath?: Prisma.StringNullableFilter<"Payment"> | string | null
   reference?: Prisma.StringNullableFilter<"Payment"> | string | null
+  gatewayRequestedAt?: Prisma.DateTimeNullableFilter<"Payment"> | Date | string | null
+  gatewayCardNumber?: Prisma.StringNullableFilter<"Payment"> | string | null
   paidAt?: Prisma.DateTimeNullableFilter<"Payment"> | Date | string | null
   verifiedById?: Prisma.UuidNullableFilter<"Payment"> | string | null
   verifiedAt?: Prisma.DateTimeNullableFilter<"Payment"> | Date | string | null
@@ -344,7 +374,7 @@ export type PaymentWhereUniqueInput = Prisma.AtLeast<{
   order?: Prisma.XOR<Prisma.OrderScalarRelationFilter, Prisma.OrderWhereInput>
   user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   verifiedBy?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
-}, "id" | "orderId">
+}, "id" | "orderId" | "gatewayTrackId">
 
 export type PaymentOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -356,6 +386,9 @@ export type PaymentOrderByWithAggregationInput = {
   status?: Prisma.SortOrder
   receiptPath?: Prisma.SortOrderInput | Prisma.SortOrder
   reference?: Prisma.SortOrderInput | Prisma.SortOrder
+  gatewayTrackId?: Prisma.SortOrderInput | Prisma.SortOrder
+  gatewayRequestedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  gatewayCardNumber?: Prisma.SortOrderInput | Prisma.SortOrder
   paidAt?: Prisma.SortOrderInput | Prisma.SortOrder
   verifiedById?: Prisma.SortOrderInput | Prisma.SortOrder
   verifiedAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -382,6 +415,9 @@ export type PaymentScalarWhereWithAggregatesInput = {
   status?: Prisma.EnumPaymentStatusWithAggregatesFilter<"Payment"> | $Enums.PaymentStatus
   receiptPath?: Prisma.StringNullableWithAggregatesFilter<"Payment"> | string | null
   reference?: Prisma.StringNullableWithAggregatesFilter<"Payment"> | string | null
+  gatewayTrackId?: Prisma.StringNullableWithAggregatesFilter<"Payment"> | string | null
+  gatewayRequestedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Payment"> | Date | string | null
+  gatewayCardNumber?: Prisma.StringNullableWithAggregatesFilter<"Payment"> | string | null
   paidAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Payment"> | Date | string | null
   verifiedById?: Prisma.UuidNullableWithAggregatesFilter<"Payment"> | string | null
   verifiedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Payment"> | Date | string | null
@@ -398,6 +434,9 @@ export type PaymentCreateInput = {
   status?: $Enums.PaymentStatus
   receiptPath?: string | null
   reference?: string | null
+  gatewayTrackId?: string | null
+  gatewayRequestedAt?: Date | string | null
+  gatewayCardNumber?: string | null
   paidAt?: Date | string | null
   verifiedAt?: Date | string | null
   rejectReason?: string | null
@@ -418,6 +457,9 @@ export type PaymentUncheckedCreateInput = {
   status?: $Enums.PaymentStatus
   receiptPath?: string | null
   reference?: string | null
+  gatewayTrackId?: string | null
+  gatewayRequestedAt?: Date | string | null
+  gatewayCardNumber?: string | null
   paidAt?: Date | string | null
   verifiedById?: string | null
   verifiedAt?: Date | string | null
@@ -434,6 +476,9 @@ export type PaymentUpdateInput = {
   status?: Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
   receiptPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gatewayTrackId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gatewayRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gatewayCardNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   rejectReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -454,6 +499,9 @@ export type PaymentUncheckedUpdateInput = {
   status?: Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
   receiptPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gatewayTrackId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gatewayRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gatewayCardNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   verifiedById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -472,6 +520,9 @@ export type PaymentCreateManyInput = {
   status?: $Enums.PaymentStatus
   receiptPath?: string | null
   reference?: string | null
+  gatewayTrackId?: string | null
+  gatewayRequestedAt?: Date | string | null
+  gatewayCardNumber?: string | null
   paidAt?: Date | string | null
   verifiedById?: string | null
   verifiedAt?: Date | string | null
@@ -488,6 +539,9 @@ export type PaymentUpdateManyMutationInput = {
   status?: Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
   receiptPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gatewayTrackId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gatewayRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gatewayCardNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   rejectReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -505,6 +559,9 @@ export type PaymentUncheckedUpdateManyInput = {
   status?: Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
   receiptPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gatewayTrackId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gatewayRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gatewayCardNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   verifiedById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -538,6 +595,9 @@ export type PaymentCountOrderByAggregateInput = {
   status?: Prisma.SortOrder
   receiptPath?: Prisma.SortOrder
   reference?: Prisma.SortOrder
+  gatewayTrackId?: Prisma.SortOrder
+  gatewayRequestedAt?: Prisma.SortOrder
+  gatewayCardNumber?: Prisma.SortOrder
   paidAt?: Prisma.SortOrder
   verifiedById?: Prisma.SortOrder
   verifiedAt?: Prisma.SortOrder
@@ -560,6 +620,9 @@ export type PaymentMaxOrderByAggregateInput = {
   status?: Prisma.SortOrder
   receiptPath?: Prisma.SortOrder
   reference?: Prisma.SortOrder
+  gatewayTrackId?: Prisma.SortOrder
+  gatewayRequestedAt?: Prisma.SortOrder
+  gatewayCardNumber?: Prisma.SortOrder
   paidAt?: Prisma.SortOrder
   verifiedById?: Prisma.SortOrder
   verifiedAt?: Prisma.SortOrder
@@ -578,6 +641,9 @@ export type PaymentMinOrderByAggregateInput = {
   status?: Prisma.SortOrder
   receiptPath?: Prisma.SortOrder
   reference?: Prisma.SortOrder
+  gatewayTrackId?: Prisma.SortOrder
+  gatewayRequestedAt?: Prisma.SortOrder
+  gatewayCardNumber?: Prisma.SortOrder
   paidAt?: Prisma.SortOrder
   verifiedById?: Prisma.SortOrder
   verifiedAt?: Prisma.SortOrder
@@ -722,6 +788,9 @@ export type PaymentCreateWithoutUserInput = {
   status?: $Enums.PaymentStatus
   receiptPath?: string | null
   reference?: string | null
+  gatewayTrackId?: string | null
+  gatewayRequestedAt?: Date | string | null
+  gatewayCardNumber?: string | null
   paidAt?: Date | string | null
   verifiedAt?: Date | string | null
   rejectReason?: string | null
@@ -740,6 +809,9 @@ export type PaymentUncheckedCreateWithoutUserInput = {
   status?: $Enums.PaymentStatus
   receiptPath?: string | null
   reference?: string | null
+  gatewayTrackId?: string | null
+  gatewayRequestedAt?: Date | string | null
+  gatewayCardNumber?: string | null
   paidAt?: Date | string | null
   verifiedById?: string | null
   verifiedAt?: Date | string | null
@@ -766,6 +838,9 @@ export type PaymentCreateWithoutVerifiedByInput = {
   status?: $Enums.PaymentStatus
   receiptPath?: string | null
   reference?: string | null
+  gatewayTrackId?: string | null
+  gatewayRequestedAt?: Date | string | null
+  gatewayCardNumber?: string | null
   paidAt?: Date | string | null
   verifiedAt?: Date | string | null
   rejectReason?: string | null
@@ -785,6 +860,9 @@ export type PaymentUncheckedCreateWithoutVerifiedByInput = {
   status?: $Enums.PaymentStatus
   receiptPath?: string | null
   reference?: string | null
+  gatewayTrackId?: string | null
+  gatewayRequestedAt?: Date | string | null
+  gatewayCardNumber?: string | null
   paidAt?: Date | string | null
   verifiedAt?: Date | string | null
   rejectReason?: string | null
@@ -831,6 +909,9 @@ export type PaymentScalarWhereInput = {
   status?: Prisma.EnumPaymentStatusFilter<"Payment"> | $Enums.PaymentStatus
   receiptPath?: Prisma.StringNullableFilter<"Payment"> | string | null
   reference?: Prisma.StringNullableFilter<"Payment"> | string | null
+  gatewayTrackId?: Prisma.StringNullableFilter<"Payment"> | string | null
+  gatewayRequestedAt?: Prisma.DateTimeNullableFilter<"Payment"> | Date | string | null
+  gatewayCardNumber?: Prisma.StringNullableFilter<"Payment"> | string | null
   paidAt?: Prisma.DateTimeNullableFilter<"Payment"> | Date | string | null
   verifiedById?: Prisma.UuidNullableFilter<"Payment"> | string | null
   verifiedAt?: Prisma.DateTimeNullableFilter<"Payment"> | Date | string | null
@@ -863,6 +944,9 @@ export type PaymentCreateWithoutOrderInput = {
   status?: $Enums.PaymentStatus
   receiptPath?: string | null
   reference?: string | null
+  gatewayTrackId?: string | null
+  gatewayRequestedAt?: Date | string | null
+  gatewayCardNumber?: string | null
   paidAt?: Date | string | null
   verifiedAt?: Date | string | null
   rejectReason?: string | null
@@ -881,6 +965,9 @@ export type PaymentUncheckedCreateWithoutOrderInput = {
   status?: $Enums.PaymentStatus
   receiptPath?: string | null
   reference?: string | null
+  gatewayTrackId?: string | null
+  gatewayRequestedAt?: Date | string | null
+  gatewayCardNumber?: string | null
   paidAt?: Date | string | null
   verifiedById?: string | null
   verifiedAt?: Date | string | null
@@ -913,6 +1000,9 @@ export type PaymentUpdateWithoutOrderInput = {
   status?: Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
   receiptPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gatewayTrackId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gatewayRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gatewayCardNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   rejectReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -931,6 +1021,9 @@ export type PaymentUncheckedUpdateWithoutOrderInput = {
   status?: Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
   receiptPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gatewayTrackId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gatewayRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gatewayCardNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   verifiedById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -948,6 +1041,9 @@ export type PaymentCreateManyUserInput = {
   status?: $Enums.PaymentStatus
   receiptPath?: string | null
   reference?: string | null
+  gatewayTrackId?: string | null
+  gatewayRequestedAt?: Date | string | null
+  gatewayCardNumber?: string | null
   paidAt?: Date | string | null
   verifiedById?: string | null
   verifiedAt?: Date | string | null
@@ -966,6 +1062,9 @@ export type PaymentCreateManyVerifiedByInput = {
   status?: $Enums.PaymentStatus
   receiptPath?: string | null
   reference?: string | null
+  gatewayTrackId?: string | null
+  gatewayRequestedAt?: Date | string | null
+  gatewayCardNumber?: string | null
   paidAt?: Date | string | null
   verifiedAt?: Date | string | null
   rejectReason?: string | null
@@ -981,6 +1080,9 @@ export type PaymentUpdateWithoutUserInput = {
   status?: Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
   receiptPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gatewayTrackId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gatewayRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gatewayCardNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   rejectReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -999,6 +1101,9 @@ export type PaymentUncheckedUpdateWithoutUserInput = {
   status?: Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
   receiptPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gatewayTrackId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gatewayRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gatewayCardNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   verifiedById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1016,6 +1121,9 @@ export type PaymentUncheckedUpdateManyWithoutUserInput = {
   status?: Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
   receiptPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gatewayTrackId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gatewayRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gatewayCardNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   verifiedById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1032,6 +1140,9 @@ export type PaymentUpdateWithoutVerifiedByInput = {
   status?: Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
   receiptPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gatewayTrackId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gatewayRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gatewayCardNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   rejectReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1051,6 +1162,9 @@ export type PaymentUncheckedUpdateWithoutVerifiedByInput = {
   status?: Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
   receiptPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gatewayTrackId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gatewayRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gatewayCardNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   rejectReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1068,6 +1182,9 @@ export type PaymentUncheckedUpdateManyWithoutVerifiedByInput = {
   status?: Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
   receiptPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gatewayTrackId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gatewayRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gatewayCardNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   rejectReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1087,6 +1204,9 @@ export type PaymentSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   status?: boolean
   receiptPath?: boolean
   reference?: boolean
+  gatewayTrackId?: boolean
+  gatewayRequestedAt?: boolean
+  gatewayCardNumber?: boolean
   paidAt?: boolean
   verifiedById?: boolean
   verifiedAt?: boolean
@@ -1108,6 +1228,9 @@ export type PaymentSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   status?: boolean
   receiptPath?: boolean
   reference?: boolean
+  gatewayTrackId?: boolean
+  gatewayRequestedAt?: boolean
+  gatewayCardNumber?: boolean
   paidAt?: boolean
   verifiedById?: boolean
   verifiedAt?: boolean
@@ -1129,6 +1252,9 @@ export type PaymentSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   status?: boolean
   receiptPath?: boolean
   reference?: boolean
+  gatewayTrackId?: boolean
+  gatewayRequestedAt?: boolean
+  gatewayCardNumber?: boolean
   paidAt?: boolean
   verifiedById?: boolean
   verifiedAt?: boolean
@@ -1150,6 +1276,9 @@ export type PaymentSelectScalar = {
   status?: boolean
   receiptPath?: boolean
   reference?: boolean
+  gatewayTrackId?: boolean
+  gatewayRequestedAt?: boolean
+  gatewayCardNumber?: boolean
   paidAt?: boolean
   verifiedById?: boolean
   verifiedAt?: boolean
@@ -1158,7 +1287,7 @@ export type PaymentSelectScalar = {
   updatedAt?: boolean
 }
 
-export type PaymentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "orderId" | "userId" | "amount" | "currency" | "method" | "status" | "receiptPath" | "reference" | "paidAt" | "verifiedById" | "verifiedAt" | "rejectReason" | "createdAt" | "updatedAt", ExtArgs["result"]["payment"]>
+export type PaymentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "orderId" | "userId" | "amount" | "currency" | "method" | "status" | "receiptPath" | "reference" | "gatewayTrackId" | "gatewayRequestedAt" | "gatewayCardNumber" | "paidAt" | "verifiedById" | "verifiedAt" | "rejectReason" | "createdAt" | "updatedAt", ExtArgs["result"]["payment"]>
 export type PaymentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   order?: boolean | Prisma.OrderDefaultArgs<ExtArgs>
   user?: boolean | Prisma.Payment$userArgs<ExtArgs>
@@ -1197,7 +1326,33 @@ export type $PaymentPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
      * Storage key inside UPLOAD_DIR, never a URL.
      */
     receiptPath: string | null
+    /**
+     * The bank's reference for a settled payment — Zibal's `refNumber` for an
+     * online one, and free text for anything reconciled by hand.
+     */
     reference: string | null
+    /**
+     * Zibal's payment-session id, held for the whole life of the payment rather
+     * than being overwritten by `reference` on success.
+     * 
+     * It is the *only* thing the gateway's callback carries that we can look a
+     * payment up by, and the callback arrives unauthenticated — so this column is
+     * unique, and a session is settled by asking Zibal, never by believing the
+     * query string that pointed us at the row.
+     */
+    gatewayTrackId: string | null
+    /**
+     * When that session was opened. A fresh session is handed back as-is instead
+     * of minting a second one, so a customer who returns to the tab cannot end up
+     * with two open sessions and pay the one we are no longer watching.
+     */
+    gatewayRequestedAt: Date | null
+    /**
+     * The masked card the payer used, exactly as Zibal returns it (`62741****44`).
+     * Kept because it is the one detail a person can match against their own bank
+     * statement; it is not a card number and cannot be paid with.
+     */
+    gatewayCardNumber: string | null
     paidAt: Date | null
     verifiedById: string | null
     verifiedAt: Date | null
@@ -1639,6 +1794,9 @@ export interface PaymentFieldRefs {
   readonly status: Prisma.FieldRef<"Payment", 'PaymentStatus'>
   readonly receiptPath: Prisma.FieldRef<"Payment", 'String'>
   readonly reference: Prisma.FieldRef<"Payment", 'String'>
+  readonly gatewayTrackId: Prisma.FieldRef<"Payment", 'String'>
+  readonly gatewayRequestedAt: Prisma.FieldRef<"Payment", 'DateTime'>
+  readonly gatewayCardNumber: Prisma.FieldRef<"Payment", 'String'>
   readonly paidAt: Prisma.FieldRef<"Payment", 'DateTime'>
   readonly verifiedById: Prisma.FieldRef<"Payment", 'String'>
   readonly verifiedAt: Prisma.FieldRef<"Payment", 'DateTime'>

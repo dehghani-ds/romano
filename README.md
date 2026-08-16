@@ -146,7 +146,5 @@ a UI change only.
 
 ## Not built yet
 
-- Online payment (IPG). `payments.method` already accepts `ipg` and
-  `payments.reference` is ready for a gateway reference.
 - Admin screens for managing products (seeded for now).
 - Notifying a customer when their order is accepted, and OTP for guest checkout.

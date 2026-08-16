@@ -32,6 +32,8 @@ export type IconName =
   | 'pencil'
   | 'trash'
   | 'wallet'
+  | 'credit-card'
+  | 'external-link'
   | 'cup'
   | 'wrench'
   | 'tag'
@@ -82,6 +84,14 @@ const PATHS: Record<IconName, string> = {
     '<path d="M4 7h16"/><path d="M9.5 7V4.5h5V7"/><path d="M6.5 7l.9 12.1A1.5 1.5 0 0 0 8.9 20.5h6.2a1.5 1.5 0 0 0 1.5-1.4L17.5 7"/><path d="M10.5 11v5.5M13.5 11v5.5"/>',
   wallet:
     '<path d="M3.5 7.5A2 2 0 0 1 5.5 5.5H17a1.5 1.5 0 0 1 1.5 1.5v1"/><path d="M3.5 7.5v9A2 2 0 0 0 5.5 18.5H18a2 2 0 0 0 2-2v-7a1.5 1.5 0 0 0-1.5-1.5H5.5a2 2 0 0 1-2-2Z"/><path d="M16.5 13h.01"/>',
+  /* A bank card — online payment, as distinct from the `wallet` that is money in
+     general and the `receipt` that is proof a transfer already happened. */
+  'credit-card':
+    '<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 9.5h19"/><path d="M6 14.5h3.5"/>',
+  /* Leaving the site. The arrow points up and away from the reading direction's
+     start, so it stays meaningful under RTL without being mirrored. */
+  'external-link':
+    '<path d="M13.5 4.5H19a.5.5 0 0 1 .5.5v5.5"/><path d="M19 5l-7.5 7.5"/><path d="M17.5 14v4.5a1.5 1.5 0 0 1-1.5 1.5H6a1.5 1.5 0 0 1-1.5-1.5V8A1.5 1.5 0 0 1 6 6.5h4.5"/>',
   /* A paper cup — supplies, as distinct from the `coffee` mug that is the drink. */
   cup: '<path d="M6 5h12l-1.3 14.1a1.6 1.6 0 0 1-1.6 1.4H8.9a1.6 1.6 0 0 1-1.6-1.4L6 5Z"/><path d="M6.6 10h10.8"/>',
   wrench:

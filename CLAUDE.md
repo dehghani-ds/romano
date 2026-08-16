@@ -46,6 +46,7 @@ apps/
     src/generated/prisma/        Generated client (committed, compiled with the app)
     src/auth/                    Username + password, JWT, guards
     src/orders/                  OrdersService — the whole lifecycle lives here
+    src/payments/                Zibal IPG — protocol, client, callback
     src/expenses/                ExpensesService — the admin expense ledger
     src/common/messages.ts       Every Persian sentence a user can see
   web/                           Angular — customer + guest, :4200
@@ -122,6 +123,41 @@ What *is* still in the database, in
 keys, and CHECK constraints for the facts that must hold no matter which code
 path wrote the row — including `orders_owner_ck`, which guarantees every order
 has either a `user_id` or a `guest_token`.
+
+### 2a. The payment gateway is a module, not a branch in `OrdersService`
+
+`apps/api/src/payments/` is Zibal's IPG (<https://help.zibal.ir/ipg/>) and nothing
+else. It is split so each piece can be read against one thing:
+
+| File | Knows |
+|------|-------|
+| `zibal.protocol.ts` | The wire format and what every `result` / `status` number means. No Nest, no Prisma — it reads against Zibal's published tables. |
+| `zibal.client.ts` | HTTP, timeouts, and the merchant credential. Nothing about orders. |
+| `payments.service.ts` | What a Zibal answer means for an order. |
+| `payments.controller.ts` | `options`, `start`, and the `callback` the payer's browser lands on. |
+
+**It does not write to `payments`.** Rule 2 still holds: the module imports
+`OrdersModule` and reaches the table only through `loadForGatewayPayment`,
+`findGatewaySession`, `openGatewaySession` and `settleGatewaySession`. Adding a
+second gateway means another directory beside this one, not a second writer.
+
+Three rules earn their keep, and each has a test in `payments.service.spec.ts`:
+
+- **Nothing on the callback URL is believed.** Zibal redirects the *payer's own
+  browser* back with `success=1&status=2&trackId=…`. The trackId is treated as a
+  hint that a session is worth asking about; the answer comes from `/v1/verify`,
+  and the amount it reports must equal the order's.
+- **A session is reused while it is fresh** (`ZIBAL_SESSION_TTL_MS`). Two live
+  sessions on one order is the failure that costs real money: the payer settles
+  the one we stopped watching.
+- **"Could not ask" is not "did not pay".** A verify that throws leaves the
+  session open so a payment that did go through can still be settled. Only an
+  answer from Zibal releases it.
+
+Amounts are rial, which is what Zibal counts in and what Romano stores, so
+nothing is converted anywhere. `ZIBAL_MERCHANT` is a secret and lives only in
+`.env`; leave it unset and online payment is not offered at all — the site falls
+back to receipt upload, which is why `GET /api/payments/options` exists.
 
 ### 2b. Expenses are a ledger, not an order
 
@@ -213,8 +249,6 @@ update users set role = 'admin' where username = 'their_username';
 
 ## Deliberately not built yet
 
-- Online payment (IPG). `payments.method` already has an `ipg` value and
-  `payments.reference` is there for the gateway reference.
 - Editing and removing products. Adding is built (`POST /api/admin/products`,
   محصول‌ها in the dashboard); changing a price, a unit or retiring a product is
   still a seed edit or a SQL statement.

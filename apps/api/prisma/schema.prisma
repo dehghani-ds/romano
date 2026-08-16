@@ -195,8 +195,28 @@ model Payment {
   status PaymentStatus @default(awaiting_receipt)
 
   /// Storage key inside UPLOAD_DIR, never a URL.
-  receiptPath  String?   @map("receipt_path")
-  reference    String?
+  receiptPath String? @map("receipt_path")
+  /// The bank's reference for a settled payment — Zibal's `refNumber` for an
+  /// online one, and free text for anything reconciled by hand.
+  reference   String?
+
+  /// Zibal's payment-session id, held for the whole life of the payment rather
+  /// than being overwritten by `reference` on success.
+  ///
+  /// It is the *only* thing the gateway's callback carries that we can look a
+  /// payment up by, and the callback arrives unauthenticated — so this column is
+  /// unique, and a session is settled by asking Zibal, never by believing the
+  /// query string that pointed us at the row.
+  gatewayTrackId     String?   @unique @map("gateway_track_id")
+  /// When that session was opened. A fresh session is handed back as-is instead
+  /// of minting a second one, so a customer who returns to the tab cannot end up
+  /// with two open sessions and pay the one we are no longer watching.
+  gatewayRequestedAt DateTime? @map("gateway_requested_at") @db.Timestamptz(6)
+  /// The masked card the payer used, exactly as Zibal returns it (`62741****44`).
+  /// Kept because it is the one detail a person can match against their own bank
+  /// statement; it is not a card number and cannot be paid with.
+  gatewayCardNumber  String?   @map("gateway_card_number")
+
   paidAt       DateTime? @map("paid_at") @db.Timestamptz(6)
   verifiedById String?   @map("verified_by") @db.Uuid
   verifiedAt   DateTime? @map("verified_at") @db.Timestamptz(6)
