@@ -85,6 +85,15 @@ export const MESSAGES = {
     sessionNotFound: 'این جلسهٔ پرداخت پیدا نشد.',
   },
 
+  settings: {
+    missing: 'تنظیمات پرداخت پیدا نشد. با توسعه‌دهنده تماس بگیرید.',
+    noMethodLeft:
+      'دست‌کم یک روش پرداخت باید فعال بماند. پیش از خاموش‌کردن کارت‌به‌کارت، درگاه اینترنتی را کامل تنظیم و فعال کنید.',
+    saved: 'تنظیمات پرداخت ذخیره شد.',
+    /** Shown beside the switch, not as an error: the row saved, the gateway is just not usable yet. */
+    onlineNotReady: 'برای فعال‌شدن پرداخت اینترنتی، کلید درگاه و نشانی بازگشت را پر کنید.',
+  },
+
   generic: {
     validationFailed: 'اطلاعات واردشده درست نیست.',
     unexpected: 'خطای غیرمنتظره‌ای رخ داد. لطفاً دوباره تلاش کنید.',

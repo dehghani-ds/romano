@@ -1,11 +1,15 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
-import { PAYMENT_CARD, formatCardNumber } from '@romano/domain';
+import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
+import { formatCardNumber } from '@romano/domain';
 import { Icon } from './icon';
 
 /**
  * The card to transfer to, shown wherever a receipt is asked for — at checkout
  * and again on the order page, because the person who pays is not always looking
  * at the screen where they ordered.
+ *
+ * The holder and number are inputs rather than a constant compiled in: they come
+ * from `GET /api/payments/options`, so changing whose card receives money is an
+ * edit in the dashboard instead of a code change and two bundle deploys.
  *
  * The number is displayed grouped but copied bare: banking apps reject the
  * dashes. Latin digits stay Latin here — it is an identifier someone retypes
@@ -21,7 +25,7 @@ import { Icon } from './icon';
       <p class="pay__lead">مبلغ سفارش را کارت‌به‌کارت کنید، سپس رسید را بارگذاری کنید.</p>
 
       <div class="pay__row">
-        <span class="pay__number code">{{ grouped }}</span>
+        <span class="pay__number code">{{ grouped() }}</span>
         <button
           type="button"
           class="pay__copy"
@@ -34,7 +38,7 @@ import { Icon } from './icon';
 
       <p class="pay__holder">
         <app-icon name="user" [size]="14" />
-        <span>به نام {{ holder }}</span>
+        <span>به نام {{ holder() }}</span>
       </p>
 
       <!-- Polite, so it is announced without interrupting; the icon swap alone
@@ -145,8 +149,11 @@ import { Icon } from './icon';
   `,
 })
 export class PaymentCard {
-  protected readonly holder = PAYMENT_CARD.holder;
-  protected readonly grouped = formatCardNumber(PAYMENT_CARD.number);
+  readonly holder = input.required<string>();
+  /** Bare digits, as stored and as copied. */
+  readonly number = input.required<string>();
+
+  protected readonly grouped = computed(() => formatCardNumber(this.number()));
 
   protected readonly copied = signal(false);
 
@@ -154,7 +161,7 @@ export class PaymentCard {
 
   protected async copy(): Promise<void> {
     try {
-      await navigator.clipboard.writeText(PAYMENT_CARD.number);
+      await navigator.clipboard.writeText(this.number());
     } catch {
       // Clipboard is blocked without a secure context or permission. Selecting
       // the number by hand still works, so this stays quiet rather than raising

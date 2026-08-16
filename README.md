@@ -99,6 +99,22 @@ server. From there:
 Receipts are streamed through an authenticated endpoint. The storage key never
 reaches the browser.
 
+**تنظیمات پرداخت** is where money is configured: the card customers transfer to,
+and the Zibal gateway. Both used to need a developer — the card number was
+compiled into two Angular bundles and the gateway credentials were environment
+variables — so changing either meant a deploy. They are one database row now.
+
+Online payment starts **off** in a fresh database. Turn it on by entering the
+merchant key from the Zibal panel, the callback URL (this API's public origin
+plus `/api/payments/callback`) and the site URL, then ticking the switch. The
+button stays hidden until all three are set, so it can never appear and then
+fail at the bank.
+
+The merchant key is write-only. It is stored, used to sign calls to Zibal, and
+never returned by any endpoint — the form shows a mask like `3f19••••9e42` and
+starts blank, and leaving it blank keeps the key you already have. If it is
+lost, take a new one from the Zibal panel rather than looking for it here.
+
 ### Data model
 
 | Table | Purpose |

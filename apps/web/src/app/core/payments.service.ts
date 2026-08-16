@@ -40,9 +40,15 @@ export class PaymentsService {
       })
       .catch(() => {
         // A gateway we cannot ask about is a gateway we do not offer. Failing
-        // closed keeps the card-to-card path visible instead of showing a
-        // button that cannot work.
-        const off: PaymentOptions = { onlineEnabled: false, minAmount: 0, currency: 'IRR' };
+        // closed hides the online button rather than showing one that cannot
+        // work — and `cardToCard: null` hides the card panel too, because
+        // inventing a card number to pay into is the one wrong answer here.
+        const off: PaymentOptions = {
+          onlineEnabled: false,
+          cardToCard: null,
+          minAmount: 0,
+          currency: 'IRR',
+        };
         this.cached.set(off);
         return off;
       })

@@ -80,6 +80,24 @@ export const FIELD_ERRORS = {
   expenseCurrency: 'واحد پول باید یک کد سه‌حرفی مثل IRR باشد.',
 } as const;
 
+/**
+ * Payment settings, which an admin edits from the dashboard.
+ *
+ * Kept apart from FIELD_ERRORS because these are read by one form, and because
+ * one of them is about a credential: `zibalMerchant` says what shape a key has
+ * without ever quoting the value back, which a message about a secret must not
+ * do — the sentence lands in the browser and in the browser's console.
+ */
+export const SETTINGS_ERRORS = {
+  cardHolder: 'نام صاحب کارت را بنویسید (۱ تا ۸۰ نویسه).',
+  cardNumber: 'شمارهٔ کارت باید ۱۶ رقم و بدون فاصله یا خط تیره باشد.',
+  zibalMerchant: 'کلید درگاه را همان‌طور که زیبال داده وارد کنید — دست‌کم ۴ نویسه، بدون فاصله.',
+  zibalBaseUrl: 'نشانی درگاه باید یک آدرس کامل با http یا https باشد.',
+  zibalCallbackUrl:
+    'نشانی بازگشت باید یک آدرس کامل با http یا https باشد — مثل https://example.com/api/payments/callback',
+  webBaseUrl: 'نشانی سایت باید یک آدرس کامل با http یا https باشد — مثل https://example.com',
+} as const;
+
 /** Receipts: same limits the Supabase bucket used to enforce. */
 export const RECEIPT_MAX_BYTES = 5 * 1024 * 1024;
 export const RECEIPT_MIME_TYPES = [

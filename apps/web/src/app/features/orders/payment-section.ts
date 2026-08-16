@@ -13,6 +13,7 @@ import {
   PAYMENT_CHOICE_META,
   formatMoney,
   paymentStateMeta,
+  type CardToCardDestination,
   type PaymentChoice,
 } from '@romano/domain';
 import { Icon, IconName, PaymentCard, Spinner, ToastService } from '@romano/ui';
@@ -136,7 +137,9 @@ import { PaymentsService } from '../../core/payments.service';
           </button>
         } @else {
           <!-- Card to card ------------------------------------------------- -->
-          <app-payment-card />
+          @if (cardToCard(); as card) {
+            <app-payment-card [holder]="card.holder" [number]="card.number" />
+          }
 
           <label class="upload" [class.is-set]="pendingFile() !== null">
             <input
@@ -354,6 +357,8 @@ export class PaymentSection {
   readonly order = input.required<OrderDetail>();
   /** True once the gateway has confirmed it is configured. */
   readonly onlineEnabled = input<boolean>(false);
+  /** Null while loading, and when an admin has switched card-to-card off. */
+  readonly cardToCard = input<CardToCardDestination | null>(null);
 
   /** The parent owns reloading the order and opening the stored receipt. */
   readonly changed = output<void>();

@@ -18,16 +18,20 @@ export type ExpenseCategory = 'coffee' | 'supplies' | 'equipment' | 'other';
 export const DEFAULT_COMPANY_NAME = 'دیجی‌پی';
 
 /**
- * Where the money goes until an IPG exists. Card-to-card is the whole payment
- * flow today: the customer transfers, then uploads the receipt.
+ * Where a card-to-card transfer goes.
  *
- * Stored unformatted — the grouping is presentation, and what gets copied to the
- * clipboard is the bare digits, because that is what a banking app accepts.
+ * This used to be a constant compiled into both Angular bundles, which meant
+ * that changing whose card receives money was a code change and a deploy. It
+ * comes from `GET /api/payments/options` now, out of the `payment_settings` row
+ * an admin edits.
+ *
+ * The number is unformatted — grouping is presentation, and what gets copied to
+ * the clipboard is the bare digits, because that is what a banking app accepts.
  */
-export const PAYMENT_CARD = {
-  holder: 'محمدرضا دهقانی ابیانه',
-  number: '6219861905572805',
-} as const;
+export interface CardToCardDestination {
+  holder: string;
+  number: string;
+}
 
 /** `6219861905572805` → `6219-8619-0557-2805`. Display only. */
 export function formatCardNumber(number: string): string {
@@ -394,12 +398,61 @@ export function paymentStateMeta(
   return { ...meta, icon };
 }
 
-/** Whether the site should offer the online option, and the floor Zibal enforces. */
+/**
+ * What the customer site is told about payment, from `GET /api/payments/options`.
+ *
+ * Everything here is something a customer is shown anyway. The gateway
+ * credential is not part of this shape: it is write-only, settable from the
+ * dashboard and readable by nothing.
+ */
 export interface PaymentOptions {
   onlineEnabled: boolean;
+  /** Null when an admin has switched card-to-card off. */
+  cardToCard: CardToCardDestination | null;
   /** Zibal refuses anything under this, in the currency below. */
   minAmount: number;
   currency: string;
+}
+
+/**
+ * Payment settings as the dashboard sees them.
+ *
+ * `zibalMerchant` is absent by design — there is no endpoint that returns it.
+ * `zibalMerchantHint` is four characters at each end (`6a78••••d82c`), enough to
+ * recognise which key is installed and not enough to be one.
+ */
+export interface PaymentSettings {
+  cardToCardEnabled: boolean;
+  cardHolder: string;
+  cardNumber: string;
+  onlineEnabled: boolean;
+  zibalMerchantSet: boolean;
+  zibalMerchantHint: string | null;
+  zibalBaseUrl: string;
+  zibalCallbackUrl: string | null;
+  webBaseUrl: string | null;
+  /** True when online payment would actually work — switch on *and* configured. */
+  onlineReady: boolean;
+  updatedAt: string;
+  updatedByUsername: string | null;
+}
+
+/**
+ * Editing the settings. Every field is optional and absence means "leave it".
+ *
+ * `zibalMerchant` follows that rule for a specific reason: the dashboard is
+ * never told the current key, so it has nothing to send back, and omitting it
+ * has to mean "keep". Send an empty string to clear it on purpose.
+ */
+export interface UpdatePaymentSettingsRequest {
+  cardToCardEnabled?: boolean;
+  cardHolder?: string;
+  cardNumber?: string;
+  onlineEnabled?: boolean;
+  zibalMerchant?: string;
+  zibalBaseUrl?: string;
+  zibalCallbackUrl?: string;
+  webBaseUrl?: string;
 }
 
 /** The answer to "open a payment session": where to send the browser. */

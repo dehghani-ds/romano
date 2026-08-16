@@ -45,6 +45,10 @@ import { AuthService } from '../core/auth.service';
           <app-icon name="wallet" [size]="18" />
           <span>هزینه‌ها</span>
         </a>
+        <a routerLink="/settings/payment" routerLinkActive="is-active" class="nav__link">
+          <app-icon name="credit-card" [size]="18" />
+          <span>تنظیمات پرداخت</span>
+        </a>
       </nav>
 
       <div class="foot">

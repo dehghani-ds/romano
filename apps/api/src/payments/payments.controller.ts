@@ -1,12 +1,11 @@
 import { Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Query, Res, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { ConfigService } from '@nestjs/config';
 import type { Response } from 'express';
 
 import type { AuthUser } from '../auth/auth.types';
 import { CurrentUser, OptionalAuthGuard } from '../auth/guards';
-import type { AppConfig } from '../config/configuration';
 import { GuestToken } from '../orders/guest-token.decorator';
+import type { PublicPaymentOptions } from './payment-settings.service';
 import { PaymentsService, type StartedPayment } from './payments.service';
 
 /**
@@ -20,20 +19,17 @@ import { PaymentsService, type StartedPayment } from './payments.service';
  */
 @Controller('payments')
 export class PaymentsController {
-  constructor(
-    private readonly payments: PaymentsService,
-    private readonly config: ConfigService<AppConfig, true>,
-  ) {}
+  constructor(private readonly payments: PaymentsService) {}
 
   /**
-   * Whether online payment is on at all.
+   * Which payment methods apply, and the card to transfer to.
    *
    * Public and unauthenticated because the answer is the same for everyone and
    * the site needs it before deciding which payment choices to render. A button
    * that appears and then fails at the bank is worse than one that never appears.
    */
   @Get('options')
-  options(): { onlineEnabled: boolean; minAmount: number; currency: string } {
+  options(): Promise<PublicPaymentOptions> {
     return this.payments.options();
   }
 
@@ -69,7 +65,10 @@ export class PaymentsController {
   async callback(@Query('trackId') trackId: string | undefined, @Res() response: Response): Promise<void> {
     const result = await this.payments.settleCallback(trackId);
 
-    const base = this.config.get('webBaseUrl', { infer: true });
+    // Relative when no site URL is configured. That still lands the payer on the
+    // right page whenever the API and the site share an origin, which is how
+    // this is deployed — a wrong absolute host would not.
+    const base = await this.payments.returnBaseUrl();
     const path = result.orderId ? `/orders/${result.orderId}` : '/orders';
     const query = new URLSearchParams({ payment: result.outcome, message: result.message });
 

@@ -1,8 +1,7 @@
 import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 
 import { MESSAGES } from '../common/messages';
-import type { AppConfig } from '../config/configuration';
+import { PaymentSettingsService, type PaymentSettings } from './payment-settings.service';
 import {
   normalizeTrackId,
   zibalResultMessage,
@@ -23,23 +22,20 @@ const TIMEOUT_MS = 15_000;
  * order state and touches no table, which is what lets `PaymentsService` be read
  * as a sequence of decisions rather than a mess of HTTP.
  *
- * `merchant` never leaves this class. It is the credential that authenticates
- * the shop to the gateway, so it is attached here on the way out rather than
- * being passed around by callers who might log it.
+ * The merchant credential is read from the settings row and attached here, on
+ * the way out. It is never taken as an argument and never logged — this class is
+ * the one place in the server it is allowed to exist as a plain string, and the
+ * only direction it travels is outbound to Zibal.
  */
 @Injectable()
 export class ZibalClient {
   private readonly logger = new Logger('Zibal');
 
-  constructor(private readonly config: ConfigService<AppConfig, true>) {}
+  constructor(private readonly settings: PaymentSettingsService) {}
 
-  /** False when no merchant is configured — online payment is then not offered. */
-  get isConfigured(): boolean {
-    return Boolean(this.settings.merchant && this.settings.callbackUrl);
-  }
-
-  private get settings() {
-    return this.config.get('zibal', { infer: true });
+  /** True when a merchant and callback URL are configured and the switch is on. */
+  async isConfigured(): Promise<boolean> {
+    return PaymentSettingsService.isOnlineReady(await this.settings.current());
   }
 
   /**
@@ -50,17 +46,18 @@ export class ZibalClient {
    * goes wrong once and then charges someone ten times over.
    */
   async request(input: Omit<ZibalRequestPayload, 'merchant' | 'callbackUrl'>): Promise<string> {
-    const { merchant, callbackUrl } = this.settings;
+    const settings = await this.requireConfigured();
 
-    const body = await this.post<ZibalRequestResponse>('/v1/request', {
+    const body = await this.post<ZibalRequestResponse>('/v1/request', settings, {
       ...input,
-      merchant,
-      callbackUrl,
+      merchant: settings.zibalMerchant,
+      callbackUrl: settings.zibalCallbackUrl,
     });
 
     if (body.result !== ZIBAL_RESULT_OK) {
       // The code is for us; the sentence is for the customer. Both exist because
       // "درگاه پیکربندی نشده" on screen is useless without a 102 in the log.
+      // Note what is not in this line: the merchant that produced the 102.
       this.logger.error(`request rejected: result=${body.result} message=${body.message ?? ''}`);
       throw new ServiceUnavailableException({
         code: 'gateway_request_failed',
@@ -89,17 +86,36 @@ export class ZibalClient {
    * as settled belongs to the protocol table, not here.
    */
   async verify(trackId: string): Promise<ZibalVerifyResponse> {
-    const { merchant } = this.settings;
-    return this.post<ZibalVerifyResponse>('/v1/verify', { merchant, trackId: Number(trackId) });
+    const settings = await this.requireConfigured();
+    return this.post<ZibalVerifyResponse>('/v1/verify', settings, {
+      merchant: settings.zibalMerchant,
+      trackId: Number(trackId),
+    });
   }
 
   /** Where the customer's browser is sent to actually pay. */
-  startUrl(trackId: string): string {
-    return `${this.settings.baseUrl.replace(/\/+$/, '')}/start/${encodeURIComponent(trackId)}`;
+  async startUrl(trackId: string): Promise<string> {
+    const { zibalBaseUrl } = await this.settings.current();
+    return `${zibalBaseUrl.replace(/\/+$/, '')}/start/${encodeURIComponent(trackId)}`;
   }
 
-  private async post<T>(path: string, payload: Record<string, unknown>): Promise<T> {
-    const url = `${this.settings.baseUrl.replace(/\/+$/, '')}${path}`;
+  private async requireConfigured(): Promise<PaymentSettings> {
+    const settings = await this.settings.current();
+    if (!PaymentSettingsService.isOnlineReady(settings)) {
+      throw new ServiceUnavailableException({
+        code: 'gateway_disabled',
+        message: MESSAGES.payment.gatewayDisabled,
+      });
+    }
+    return settings;
+  }
+
+  private async post<T>(
+    path: string,
+    settings: PaymentSettings,
+    payload: Record<string, unknown>,
+  ): Promise<T> {
+    const url = `${settings.zibalBaseUrl.replace(/\/+$/, '')}${path}`;
 
     let response: Response;
     try {

@@ -96,6 +96,7 @@ model User {
   verifiedPayments Payment[]            @relation("PaymentVerifiedBy")
   statusChanges    OrderStatusHistory[]
   expensesPaid     Expense[]            @relation("ExpensePaidBy")
+  paymentSettings  PaymentSettings[]    @relation("PaymentSettingsUpdatedBy")
 
   @@index([role])
   @@map("users")
@@ -247,6 +248,58 @@ model OrderStatusHistory {
 
   @@index([orderId, createdAt(sort: Desc)])
   @@map("order_status_history")
+}
+
+/// How Romano takes money. Exactly one row, edited from the dashboard.
+///
+/// This used to be split across two places that both required a developer: the
+/// card-to-card destination was a constant compiled into both Angular bundles,
+/// and the gateway credentials were environment variables. Changing either meant
+/// a deploy. They live here so that an admin can change them.
+///
+/// **`zibalMerchant` is a credential**, and the only one in the database. Two
+/// things follow, and they are enforced in `PaymentSettingsService` rather than
+/// here because the database cannot enforce either: it is never returned to any
+/// client — reads answer with a mask and a boolean — and it is never logged.
+model PaymentSettings {
+  /// Singleton. `1` is the only legal value, and the CHECK in the migration says
+  /// so: settings that could exist twice are settings that can disagree.
+  id Int @id @default(1)
+
+  // --- Card to card ---------------------------------------------------------
+  // Not secret: every customer is shown these in order to pay.
+
+  /// Always available as the fallback, because a bank transfer works on a day
+  /// the gateway does not.
+  cardToCardEnabled Boolean @default(true) @map("card_to_card_enabled")
+  cardHolder        String  @map("card_holder")
+  /// Stored bare, exactly as a banking app wants it pasted. Grouping is display.
+  cardNumber        String  @map("card_number")
+
+  // --- Zibal IPG ------------------------------------------------------------
+
+  /// The admin's switch. Online payment is offered only when this is on *and*
+  /// the merchant and callback URL are both filled in — a half-configured
+  /// gateway must not put a button on the page that fails at the bank.
+  onlineEnabled    Boolean @default(false) @map("online_enabled")
+  /// Secret. Authenticates Romano to Zibal on every call.
+  zibalMerchant    String? @map("zibal_merchant")
+  zibalBaseUrl     String  @default("https://gateway.zibal.ir") @map("zibal_base_url")
+  /// Where Zibal returns the payer's browser — the public API origin plus
+  /// `/api/payments/callback`.
+  zibalCallbackUrl String? @map("zibal_callback_url")
+  /// Where the API forwards the payer once the payment is settled.
+  webBaseUrl       String? @map("web_base_url")
+
+  /// Who last touched this. The one credential in the database is worth knowing
+  /// the last editor of; SetNull because a departed admin must not lock the row.
+  updatedById String?  @map("updated_by") @db.Uuid
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  updatedBy User? @relation("PaymentSettingsUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@map("payment_settings")
 }
 
 /// What Romano costs to run: a bag of beans, a sleeve of cups, a new grinder.

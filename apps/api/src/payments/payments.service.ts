@@ -8,6 +8,10 @@ import {
 
 import { MESSAGES } from '../common/messages';
 import { OrdersService, type Viewer } from '../orders/orders.service';
+import {
+  PaymentSettingsService,
+  type PublicPaymentOptions,
+} from './payment-settings.service';
 import { ZibalClient } from './zibal.client';
 import {
   isPaidStatus,
@@ -58,12 +62,24 @@ export class PaymentsService {
   constructor(
     private readonly orders: OrdersService,
     private readonly zibal: ZibalClient,
+    private readonly settings: PaymentSettingsService,
   ) {}
 
-  /** What the customer site needs in order to decide whether to offer the button. */
-  options(): { onlineEnabled: boolean; minAmount: number; currency: string } {
+  /**
+   * What the customer site needs in order to render the payment section.
+   *
+   * Public and unauthenticated, so it carries only what a customer is shown
+   * anyway: whether the online button applies, and the card to transfer to. The
+   * gateway credential is not part of this shape and never will be.
+   */
+  async options(): Promise<PublicPaymentOptions> {
+    const settings = await this.settings.current();
+
     return {
-      onlineEnabled: this.zibal.isConfigured,
+      onlineEnabled: PaymentSettingsService.isOnlineReady(settings),
+      cardToCard: settings.cardToCardEnabled
+        ? { holder: settings.cardHolder, number: settings.cardNumber }
+        : null,
       minAmount: ZIBAL_MIN_AMOUNT_RIAL,
       currency: ZIBAL_CURRENCY,
     };
@@ -78,7 +94,7 @@ export class PaymentsService {
    * other, and the order stays unpaid with the money gone.
    */
   async start(orderId: string, viewer: Viewer): Promise<StartedPayment> {
-    if (!this.zibal.isConfigured) {
+    if (!(await this.zibal.isConfigured())) {
       throw new ServiceUnavailableException({
         code: 'gateway_disabled',
         message: MESSAGES.payment.gatewayDisabled,
@@ -90,7 +106,11 @@ export class PaymentsService {
 
     const open = target.openSession;
     if (open && Date.now() - open.requestedAt.getTime() < ZIBAL_SESSION_TTL_MS) {
-      return { redirectUrl: this.zibal.startUrl(open.trackId), trackId: open.trackId, amount };
+      return {
+        redirectUrl: await this.zibal.startUrl(open.trackId),
+        trackId: open.trackId,
+        amount,
+      };
     }
 
     const trackId = await this.zibal.request({
@@ -105,7 +125,18 @@ export class PaymentsService {
 
     await this.orders.openGatewaySession(target.orderId, trackId);
 
-    return { redirectUrl: this.zibal.startUrl(trackId), trackId, amount };
+    return { redirectUrl: await this.zibal.startUrl(trackId), trackId, amount };
+  }
+
+  /**
+   * Where to send the payer once their visit to the bank is over.
+   *
+   * Read from the settings row rather than a build-time constant, so that moving
+   * the site to a new domain is an edit in the dashboard.
+   */
+  async returnBaseUrl(): Promise<string> {
+    const { webBaseUrl } = await this.settings.current();
+    return webBaseUrl ?? '';
   }
 
   /**

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { GatewayOutcome, GatewaySession, OrdersService } from '../orders/orders.service';
+import type { PaymentSettings, PaymentSettingsService } from './payment-settings.service';
 import { PaymentsService } from './payments.service';
 import type { ZibalClient } from './zibal.client';
 import type { ZibalVerifyResponse } from './zibal.protocol';
@@ -24,9 +25,21 @@ const SESSION: GatewaySession = {
   isVerified: false,
 };
 
+const CONFIGURED: PaymentSettings = {
+  cardToCardEnabled: true,
+  cardHolder: 'محمدرضا دهقانی ابیانه',
+  cardNumber: '6219861905572805',
+  onlineEnabled: true,
+  zibalMerchant: 'test-merchant',
+  zibalBaseUrl: 'https://gateway.zibal.ir',
+  zibalCallbackUrl: 'https://romano.example/api/payments/callback',
+  webBaseUrl: 'https://romano.example',
+};
+
 function build(overrides: {
   session?: GatewaySession | null;
   verify?: ZibalVerifyResponse | (() => never);
+  config?: Partial<PaymentSettings>;
 }) {
   const settle = vi.fn<(trackId: string, outcome: GatewayOutcome) => Promise<void>>(
     async () => undefined,
@@ -39,8 +52,10 @@ function build(overrides: {
     settleGatewaySession: settle,
   } as unknown as OrdersService;
 
+  const resolved: PaymentSettings = { ...CONFIGURED, ...overrides.config };
+
   const zibal = {
-    isConfigured: true,
+    isConfigured: vi.fn(async () => Boolean(resolved.onlineEnabled && resolved.zibalMerchant)),
     verify: vi.fn(async () => {
       const verify = overrides.verify;
       if (typeof verify === 'function') verify();
@@ -48,7 +63,11 @@ function build(overrides: {
     }),
   } as unknown as ZibalClient;
 
-  return { service: new PaymentsService(orders, zibal), orders, zibal, settle };
+  const settings = {
+    current: vi.fn(async () => resolved),
+  } as unknown as PaymentSettingsService;
+
+  return { service: new PaymentsService(orders, zibal, settings), orders, zibal, settle };
 }
 
 /** The outcome a settle call recorded, if it recorded one. */
@@ -193,8 +212,36 @@ describe('settling a gateway callback', () => {
 });
 
 describe('options', () => {
-  it('reports the gateway as available when it is configured', () => {
+  it('offers online payment when the settings row is complete', async () => {
     const { service } = build({});
-    expect(service.options()).toMatchObject({ onlineEnabled: true, currency: 'IRR' });
+    expect(await service.options()).toMatchObject({ onlineEnabled: true, currency: 'IRR' });
+  });
+
+  it('does not offer it when an admin has switched it off', async () => {
+    const { service } = build({ config: { onlineEnabled: false } });
+    expect((await service.options()).onlineEnabled).toBe(false);
+  });
+
+  it('does not offer it when the switch is on but no key has been entered', async () => {
+    // Half-configured is the state a fresh database is in, and the state an
+    // admin passes through while filling the form. A button that appears here
+    // would fail at the bank.
+    const { service } = build({ config: { zibalMerchant: null } });
+    expect((await service.options()).onlineEnabled).toBe(false);
+  });
+
+  it('never puts the gateway credential in the public payload', async () => {
+    const { service } = build({});
+    expect(JSON.stringify(await service.options())).not.toContain('test-merchant');
+  });
+
+  it('hands back the card to transfer to, and drops it when switched off', async () => {
+    expect((await build({}).service.options()).cardToCard).toEqual({
+      holder: 'محمدرضا دهقانی ابیانه',
+      number: '6219861905572805',
+    });
+
+    const off = build({ config: { cardToCardEnabled: false } });
+    expect((await off.service.options()).cardToCard).toBeNull();
   });
 });

@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 
-import { ORDER_STATUS_META, OrderDetail, OrderItem, OrderStatusHistoryEntry, formatDateTime, formatDeliveryDate, formatMoney, formatQuantity } from '@romano/domain';
+import { CardToCardDestination, ORDER_STATUS_META, OrderDetail, OrderItem, OrderStatusHistoryEntry, formatDateTime, formatDeliveryDate, formatMoney, formatQuantity } from '@romano/domain';
 import { Icon, Spinner, StatusChip, ToastService } from '@romano/ui';
 
 import { OrdersService } from '../../core/orders.service';
@@ -98,6 +98,7 @@ import { PaymentSection } from './payment-section';
           <app-payment-section
             [order]="o"
             [onlineEnabled]="onlineEnabled()"
+            [cardToCard]="cardToCard()"
             (changed)="reload()"
             (viewReceipt)="viewReceipt()"
           />
@@ -344,6 +345,7 @@ export class OrderDetailPage {
   protected readonly order = signal<OrderDetail | null>(null);
   protected readonly history = signal<OrderStatusHistoryEntry[]>([]);
   protected readonly onlineEnabled = signal(false);
+  protected readonly cardToCard = signal<CardToCardDestination | null>(null);
 
   protected readonly cancelling = signal(false);
 
@@ -380,7 +382,10 @@ export class OrderDetailPage {
       if (outcome) untracked(() => this.announceGatewayReturn(outcome, this.message()));
     });
 
-    void this.payments.options().then((options) => this.onlineEnabled.set(options.onlineEnabled));
+    void this.payments.options().then((options) => {
+      this.onlineEnabled.set(options.onlineEnabled);
+      this.cardToCard.set(options.cardToCard);
+    });
   }
 
   private async load(orderId = this.id()): Promise<void> {
