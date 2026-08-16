@@ -17,6 +17,11 @@ export interface AppConfig {
   uploadDir: string;
 }
 
+// Payment configuration is deliberately absent from this file. The card money is
+// transferred to, and every Zibal value including the merchant credential, live
+// in the `payment_settings` table so that an admin can change them from the
+// dashboard without a deploy. See `payments/payment-settings.service.ts`.
+
 function required(name: string): string {
   const value = process.env[name];
   if (!value) throw new Error(`Missing required environment variable: ${name}`);

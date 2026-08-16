@@ -6,18 +6,21 @@ import {
   inject,
   input,
   signal,
+  untracked,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 
-import { ORDER_STATUS_META, OrderDetail, OrderItem, OrderStatusHistoryEntry, PAYMENT_STATUS_META, formatDateTime, formatDeliveryDate, formatMoney, formatQuantity } from '@romano/domain';
-import { Icon, PaymentCard, Spinner, StatusChip, ToastService } from '@romano/ui';
+import { CardToCardDestination, ORDER_STATUS_META, OrderDetail, OrderItem, OrderStatusHistoryEntry, formatDateTime, formatDeliveryDate, formatMoney, formatQuantity } from '@romano/domain';
+import { Icon, Spinner, StatusChip, ToastService } from '@romano/ui';
 
 import { OrdersService } from '../../core/orders.service';
+import { PaymentsService } from '../../core/payments.service';
+import { PaymentSection } from './payment-section';
 
 @Component({
   selector: 'app-order-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, StatusChip, Spinner, PaymentCard],
+  imports: [RouterLink, Icon, StatusChip, Spinner, PaymentSection],
   template: `
     <div class="container container--narrow page">
       <a routerLink="/orders" class="back">
@@ -92,80 +95,13 @@ import { OrdersService } from '../../core/orders.service';
 
         <!-- Payment ------------------------------------------------------ -->
         <section class="card">
-          <h2 class="section-title">پرداخت</h2>
-
-          @if (o.payment; as payment) {
-            <p class="payment-state">
-              <app-icon
-                [name]="
-                  payment.status === 'verified'
-                    ? 'check-circle'
-                    : payment.status === 'rejected'
-                      ? 'x-circle'
-                      : 'receipt'
-                "
-                [size]="18"
-              />
-              <span>
-                <strong>{{ paymentMeta().label }}</strong>
-                — {{ paymentMeta().hint }}
-              </span>
-            </p>
-
-            @if (payment.rejectReason) {
-              <div class="alert alert--error" role="alert">
-                <app-icon name="alert" [size]="18" />
-                <span>{{ payment.rejectReason }}</span>
-              </div>
-            }
-
-            @if (payment.hasReceipt) {
-              <button type="button" class="btn btn--secondary btn--sm" (click)="viewReceipt()">
-                <app-icon name="receipt" [size]="16" />
-                دیدن رسید بارگذاری‌شده
-              </button>
-            }
-
-            @if (canUpload()) {
-              @if (payment.status !== 'verified') {
-                <app-payment-card />
-              }
-
-              <label class="upload" [class.is-set]="pendingFile() !== null">
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
-                  (change)="onFileSelected($event)"
-                />
-                <app-icon name="upload" [size]="20" />
-                <span>
-                  {{ pendingFile()?.name ?? (payment.hasReceipt ? 'جایگزینی رسید' : 'بارگذاری رسید') }}
-                </span>
-              </label>
-
-              @if (uploadError(); as message) {
-                <p class="field__error" role="alert">
-                  <app-icon name="alert" [size]="14" />
-                  {{ message }}
-                </p>
-              }
-
-              @if (pendingFile()) {
-                <button
-                  type="button"
-                  class="btn btn--primary btn--sm"
-                  (click)="uploadReceipt()"
-                  [disabled]="uploading()"
-                >
-                  @if (uploading()) {
-                    <app-spinner [size]="16" label="در حال بارگذاری" />
-                  } @else {
-                    بارگذاری رسید
-                  }
-                </button>
-              }
-            }
-          }
+          <app-payment-section
+            [order]="o"
+            [onlineEnabled]="onlineEnabled()"
+            [cardToCard]="cardToCard()"
+            (changed)="reload()"
+            (viewReceipt)="viewReceipt()"
+          />
         </section>
 
         <!-- Timeline ----------------------------------------------------- -->
@@ -331,56 +267,6 @@ import { OrdersService } from '../../core/orders.service';
       font-size: var(--fs-h3);
     }
 
-    .payment-state {
-      display: flex;
-      align-items: flex-start;
-      gap: var(--space-sm);
-      font-size: var(--fs-sm);
-      margin-bottom: var(--space-md);
-    }
-
-    .upload {
-      display: flex;
-      align-items: center;
-      gap: var(--space-sm);
-      min-height: 56px;
-      margin-top: var(--space-md);
-      padding: var(--space-md);
-      border: 1px dashed var(--c-border-strong);
-      border-radius: var(--radius-md);
-      color: var(--c-fg-muted);
-      cursor: pointer;
-
-      &:hover {
-        border-color: var(--c-primary);
-        color: var(--c-fg);
-      }
-
-      &.is-set {
-        border-style: solid;
-        border-color: var(--c-primary);
-        background: var(--c-primary-tint);
-        color: var(--c-fg);
-      }
-
-      input {
-        position: absolute;
-        opacity: 0;
-        width: 0;
-        height: 0;
-      }
-
-      &:has(input:focus-visible) {
-        outline: 2px solid var(--c-ring);
-        outline-offset: 2px;
-      }
-    }
-
-    .upload + .btn,
-    .field__error + .btn {
-      margin-top: var(--space-md);
-    }
-
     /* Timeline */
     .timeline {
       list-style: none;
@@ -439,17 +325,28 @@ export class OrderDetailPage {
   /** Bound from the `:id` route parameter by withComponentInputBinding(). */
   readonly id = input.required<string>();
 
+  /**
+   * Set only when the customer has just come back from the payment gateway.
+   *
+   * The API redirects here with the outcome and a sentence it wrote itself —
+   * the same rule as every other error in the app, so there is no table of
+   * Persian strings in the client mirroring the gateway's status codes.
+   */
+  readonly payment = input<string | undefined>(undefined);
+  readonly message = input<string | undefined>(undefined);
+
   private readonly ordersService = inject(OrdersService);
+  private readonly payments = inject(PaymentsService);
   private readonly toasts = inject(ToastService);
+  private readonly router = inject(Router);
 
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly order = signal<OrderDetail | null>(null);
   protected readonly history = signal<OrderStatusHistoryEntry[]>([]);
+  protected readonly onlineEnabled = signal(false);
+  protected readonly cardToCard = signal<CardToCardDestination | null>(null);
 
-  protected readonly pendingFile = signal<File | null>(null);
-  protected readonly uploading = signal(false);
-  protected readonly uploadError = signal<string | null>(null);
   protected readonly cancelling = signal(false);
 
   protected readonly deliveryDate = formatDeliveryDate;
@@ -464,16 +361,6 @@ export class OrderDetailPage {
     () => ORDER_STATUS_META[this.order()?.status ?? 'pending'],
   );
 
-  protected readonly paymentMeta = computed(
-    () => PAYMENT_STATUS_META[this.order()?.payment?.status ?? 'awaiting_receipt'],
-  );
-
-  /** A receipt can be attached until the order is finished or cancelled. */
-  protected readonly canUpload = computed(() => {
-    const status = this.order()?.status;
-    return status === 'pending' || status === 'in_progress';
-  });
-
   protected readonly destination = computed(() => {
     const order = this.order();
     return order ? `${order.companyName} — ${order.teamName}` : '';
@@ -486,6 +373,18 @@ export class OrderDetailPage {
     effect(() => {
       const orderId = this.id();
       void this.load(orderId);
+    });
+
+    // Separate from the load effect: coming back from the gateway changes the
+    // query string but not the id, and this must run on that change alone.
+    effect(() => {
+      const outcome = this.payment();
+      if (outcome) untracked(() => this.announceGatewayReturn(outcome, this.message()));
+    });
+
+    void this.payments.options().then((options) => {
+      this.onlineEnabled.set(options.onlineEnabled);
+      this.cardToCard.set(options.cardToCard);
     });
   }
 
@@ -502,47 +401,39 @@ export class OrderDetailPage {
     }
   }
 
+  /** Re-reads the order after something changed it — a receipt, a payment. */
+  protected reload(): void {
+    void this.load();
+  }
+
+  /**
+   * Reports what the gateway concluded, then takes it back out of the URL.
+   *
+   * The outcome is a fact about one visit, not about the order: leaving it in
+   * the address bar means a bookmark, a refresh or a shared link replays a
+   * payment result that may no longer be true. `replaceUrl` also keeps the
+   * gateway's redirect out of the back button.
+   */
+  private announceGatewayReturn(outcome: string, message: string | undefined): void {
+    const text = message?.trim();
+
+    if (outcome === 'paid') {
+      this.toasts.success(text || 'پرداخت شما انجام شد.');
+    } else if (outcome === 'failed') {
+      this.toasts.error(text || 'پرداخت انجام نشد.');
+    } else {
+      this.toasts.error(text || 'وضعیت پرداخت مشخص نشد. چند لحظه بعد دوباره بررسی کنید.');
+    }
+
+    void this.router.navigate([], { queryParams: {}, replaceUrl: true });
+  }
+
   protected statusLabel(entry: OrderStatusHistoryEntry): string {
     const to = ORDER_STATUS_META[entry.toStatus].label;
     // The arrow points the way the eye moves in an RTL page: from → to.
     return entry.fromStatus
       ? `${ORDER_STATUS_META[entry.fromStatus].label} ← ${to}`
       : `سفارش ثبت شد — ${to}`;
-  }
-
-  protected onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0] ?? null;
-    this.uploadError.set(null);
-
-    if (file && file.size > 5 * 1024 * 1024) {
-      this.uploadError.set('حجم این فایل بیشتر از ۵ مگابایت است. فایل کوچک‌تری انتخاب کنید.');
-      this.pendingFile.set(null);
-      input.value = '';
-      return;
-    }
-
-    this.pendingFile.set(file);
-  }
-
-  protected async uploadReceipt(): Promise<void> {
-    const file = this.pendingFile();
-    const order = this.order();
-    if (!file || !order) return;
-
-    this.uploading.set(true);
-    this.uploadError.set(null);
-
-    try {
-      await this.ordersService.uploadReceipt(order.id, file);
-      this.pendingFile.set(null);
-      this.toasts.success('رسید بارگذاری شد. مدیر به‌زودی آن را بررسی می‌کند.');
-      await this.load();
-    } catch (err) {
-      this.uploadError.set((err as Error).message);
-    } finally {
-      this.uploading.set(false);
-    }
   }
 
   /**

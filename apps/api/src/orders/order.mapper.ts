@@ -27,6 +27,13 @@ export interface OrderPaymentView {
   reference: string | null;
   rejectReason: string | null;
   paidAt: string | null;
+  /**
+   * Masked card the online payment was made with (`62741****44`), which is what
+   * lets a person match this order against a line on their bank statement.
+   * The trackId is not here: it is the handle the callback is trusted by, and
+   * it has no business being readable from an order.
+   */
+  cardNumber: string | null;
 }
 
 export interface OrderDetail {
@@ -125,6 +132,7 @@ export function toOrderDetail(order: OrderWithDetail): OrderDetail {
           reference: order.payment.reference,
           rejectReason: order.payment.rejectReason,
           paidAt: order.payment.paidAt?.toISOString() ?? null,
+          cardNumber: order.payment.gatewayCardNumber,
         }
       : null,
   };

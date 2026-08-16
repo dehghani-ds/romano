@@ -41,5 +41,12 @@ export const routes: Routes = [
     canActivate: [adminGuard],
     loadComponent: () => import('./features/expenses/expenses-page').then((m) => m.ExpensesPage),
   },
+  {
+    path: 'settings/payment',
+    title: 'تنظیمات پرداخت · داشبورد رومانو',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./features/settings/payment-settings-page').then((m) => m.PaymentSettingsPage),
+  },
   { path: '**', redirectTo: '' },
 ];

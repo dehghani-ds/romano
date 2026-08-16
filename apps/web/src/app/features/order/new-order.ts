@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } 
 import { Router, RouterLink } from '@angular/router';
 
 import {
+  CardToCardDestination,
   DEFAULT_COMPANY_NAME,
   Product,
   formatDeliveryDate,
@@ -16,6 +17,7 @@ import { AuthService } from '../../core/auth.service';
 import { BasketStore, MAX_LINE_QUANTITY } from '../../core/basket.store';
 import { CatalogService } from '../../core/catalog.service';
 import { OrdersService } from '../../core/orders.service';
+import { PaymentsService } from '../../core/payments.service';
 
 const MOBILE_PATTERN = /^09\d{9}$/;
 const MAX_RECEIPT_BYTES = 5 * 1024 * 1024;
@@ -288,7 +290,9 @@ type FieldName = 'contactName' | 'contactMobile' | 'teamName';
               صفحهٔ سفارش اضافه‌اش کنید.
             </p>
 
-            <app-payment-card />
+            @if (cardToCard(); as card) {
+              <app-payment-card [holder]="card.holder" [number]="card.number" />
+            }
 
             <label class="upload" [class.is-set]="receipt() !== null">
               <input
@@ -634,6 +638,7 @@ type FieldName = 'contactName' | 'contactMobile' | 'teamName';
 export class NewOrder {
   private readonly menu = inject(CatalogService);
   private readonly orders = inject(OrdersService);
+  private readonly payments = inject(PaymentsService);
   protected readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly toasts = inject(ToastService);
@@ -651,6 +656,13 @@ export class NewOrder {
   protected readonly catalog = signal<Product[]>([]);
   protected readonly notes = signal('');
   protected readonly receipt = signal<File | null>(null);
+
+  /**
+   * The card to transfer to, from the API rather than a constant. Null while it
+   * is still being fetched and when an admin has switched card-to-card off —
+   * either way the panel is simply not drawn, rather than drawn empty.
+   */
+  protected readonly cardToCard = signal<CardToCardDestination | null>(null);
 
   protected readonly contactName = signal('');
   protected readonly contactMobile = signal('');
@@ -687,6 +699,7 @@ export class NewOrder {
 
   constructor() {
     void this.load();
+    void this.payments.options().then((options) => this.cardToCard.set(options.cardToCard));
 
     // Prefill from the profile once it arrives, but never clobber typing.
     effect(() => {

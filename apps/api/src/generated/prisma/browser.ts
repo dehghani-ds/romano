@@ -48,6 +48,21 @@ export type Payment = Prisma.PaymentModel
  */
 export type OrderStatusHistory = Prisma.OrderStatusHistoryModel
 /**
+ * Model PaymentSettings
+ * How Romano takes money. Exactly one row, edited from the dashboard.
+ * 
+ * This used to be split across two places that both required a developer: the
+ * card-to-card destination was a constant compiled into both Angular bundles,
+ * and the gateway credentials were environment variables. Changing either meant
+ * a deploy. They live here so that an admin can change them.
+ * 
+ * **`zibalMerchant` is a credential**, and the only one in the database. Two
+ * things follow, and they are enforced in `PaymentSettingsService` rather than
+ * here because the database cannot enforce either: it is never returned to any
+ * client — reads answer with a mask and a boolean — and it is never logged.
+ */
+export type PaymentSettings = Prisma.PaymentSettingsModel
+/**
  * Model Expense
  * What Romano costs to run: a bag of beans, a sleeve of cups, a new grinder.
  * 

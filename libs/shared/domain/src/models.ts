@@ -18,16 +18,20 @@ export type ExpenseCategory = 'coffee' | 'supplies' | 'equipment' | 'other';
 export const DEFAULT_COMPANY_NAME = 'دیجی‌پی';
 
 /**
- * Where the money goes until an IPG exists. Card-to-card is the whole payment
- * flow today: the customer transfers, then uploads the receipt.
+ * Where a card-to-card transfer goes.
  *
- * Stored unformatted — the grouping is presentation, and what gets copied to the
- * clipboard is the bare digits, because that is what a banking app accepts.
+ * This used to be a constant compiled into both Angular bundles, which meant
+ * that changing whose card receives money was a code change and a deploy. It
+ * comes from `GET /api/payments/options` now, out of the `payment_settings` row
+ * an admin edits.
+ *
+ * The number is unformatted — grouping is presentation, and what gets copied to
+ * the clipboard is the bare digits, because that is what a banking app accepts.
  */
-export const PAYMENT_CARD = {
-  holder: 'محمدرضا دهقانی ابیانه',
-  number: '6219861905572805',
-} as const;
+export interface CardToCardDestination {
+  holder: string;
+  number: string;
+}
 
 /** `6219861905572805` → `6219-8619-0557-2805`. Display only. */
 export function formatCardNumber(number: string): string {
@@ -108,6 +112,11 @@ export interface OrderPayment {
   reference: string | null;
   rejectReason: string | null;
   paidAt: string | null;
+  /**
+   * Masked card an online payment was made with (`62741****44`) — the detail
+   * that lets someone match this order to a line on their bank statement.
+   */
+  cardNumber: string | null;
 }
 
 /** Everything a list, card or detail page needs about one order. */
@@ -324,6 +333,134 @@ export const PAYMENT_STATUS_META: Record<PaymentStatus, { label: string; hint: s
   verified: { label: 'پرداخت تأیید شد', hint: 'مدیر پرداخت را تأیید کرده است.' },
   rejected: { label: 'رسید رد شد', hint: 'رسید درست را دوباره بارگذاری کنید.' },
 };
+
+/** The two ways a customer can settle an order. `cash` is admin-side only. */
+export type PaymentChoice = 'online' | 'receipt';
+
+export const PAYMENT_CHOICE_META: Record<
+  PaymentChoice,
+  { label: string; hint: string; icon: string }
+> = {
+  online: {
+    label: 'پرداخت اینترنتی',
+    hint: 'با کارت بانکی، از طریق درگاه زیبال. تأیید آنی است.',
+    icon: 'credit-card',
+  },
+  receipt: {
+    label: 'کارت‌به‌کارت',
+    hint: 'مبلغ را واریز کنید و رسیدش را بارگذاری کنید. مدیر بررسی می‌کند.',
+    icon: 'receipt',
+  },
+};
+
+/**
+ * How a payment reads on screen, given both its status *and* the method it was
+ * made with.
+ *
+ * `PAYMENT_STATUS_META` alone cannot do this: `awaiting_receipt` is the resting
+ * state for every payment, and "هنوز رسیدی بارگذاری نشده" is simply the wrong
+ * sentence for someone who has just come back from their bank without paying.
+ * Status is never carried by colour here either — every branch returns an icon
+ * and words.
+ */
+export function paymentStateMeta(
+  payment: Pick<OrderPayment, 'status' | 'method'> | null,
+): { label: string; hint: string; icon: string } {
+  if (!payment) return { label: 'بدون پرداخت', hint: 'برای این سفارش پرداختی ثبت نشده است.', icon: 'receipt' };
+
+  if (payment.method === 'ipg') {
+    switch (payment.status) {
+      case 'verified':
+        return {
+          label: 'پرداخت اینترنتی تأیید شد',
+          hint: 'مبلغ از طریق درگاه پرداخت شد.',
+          icon: 'check-circle',
+        };
+      case 'awaiting_receipt':
+        return {
+          label: 'پرداخت ناتمام ماند',
+          hint: 'پرداخت اینترنتی کامل نشد. دوباره تلاش کنید یا رسید کارت‌به‌کارت را بارگذاری کنید.',
+          icon: 'alert',
+        };
+      default:
+        break;
+    }
+  }
+
+  const meta = PAYMENT_STATUS_META[payment.status];
+  const icon =
+    payment.status === 'verified'
+      ? 'check-circle'
+      : payment.status === 'rejected'
+        ? 'x-circle'
+        : 'receipt';
+
+  return { ...meta, icon };
+}
+
+/**
+ * What the customer site is told about payment, from `GET /api/payments/options`.
+ *
+ * Everything here is something a customer is shown anyway. The gateway
+ * credential is not part of this shape: it is write-only, settable from the
+ * dashboard and readable by nothing.
+ */
+export interface PaymentOptions {
+  onlineEnabled: boolean;
+  /** Null when an admin has switched card-to-card off. */
+  cardToCard: CardToCardDestination | null;
+  /** Zibal refuses anything under this, in the currency below. */
+  minAmount: number;
+  currency: string;
+}
+
+/**
+ * Payment settings as the dashboard sees them.
+ *
+ * `zibalMerchant` is absent by design — there is no endpoint that returns it.
+ * `zibalMerchantHint` is four characters at each end (`6a78••••d82c`), enough to
+ * recognise which key is installed and not enough to be one.
+ */
+export interface PaymentSettings {
+  cardToCardEnabled: boolean;
+  cardHolder: string;
+  cardNumber: string;
+  onlineEnabled: boolean;
+  zibalMerchantSet: boolean;
+  zibalMerchantHint: string | null;
+  zibalBaseUrl: string;
+  zibalCallbackUrl: string | null;
+  webBaseUrl: string | null;
+  /** True when online payment would actually work — switch on *and* configured. */
+  onlineReady: boolean;
+  updatedAt: string;
+  updatedByUsername: string | null;
+}
+
+/**
+ * Editing the settings. Every field is optional and absence means "leave it".
+ *
+ * `zibalMerchant` follows that rule for a specific reason: the dashboard is
+ * never told the current key, so it has nothing to send back, and omitting it
+ * has to mean "keep". Send an empty string to clear it on purpose.
+ */
+export interface UpdatePaymentSettingsRequest {
+  cardToCardEnabled?: boolean;
+  cardHolder?: string;
+  cardNumber?: string;
+  onlineEnabled?: boolean;
+  zibalMerchant?: string;
+  zibalBaseUrl?: string;
+  zibalCallbackUrl?: string;
+  webBaseUrl?: string;
+}
+
+/** The answer to "open a payment session": where to send the browser. */
+export interface StartedPayment {
+  redirectUrl: string;
+  trackId: string;
+  amount: number;
+}
 
 export const ORDER_STATUSES: OrderStatus[] = ['pending', 'in_progress', 'done', 'cancelled'];
 

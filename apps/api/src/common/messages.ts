@@ -67,6 +67,31 @@ export const MESSAGES = {
     rejectNeedsReason: 'برای رد کردن رسید باید دلیل بنویسید.',
     fileTooLarge: 'حجم فایل رسید باید کمتر از ۵ مگابایت باشد.',
     fileTypeNotAllowed: 'فقط تصویر (JPEG، PNG، WebP، HEIC) یا PDF پذیرفته می‌شود.',
+
+    // --- Online payment (Zibal) ---------------------------------------------
+    gatewayDisabled: 'پرداخت اینترنتی در حال حاضر در دسترس نیست. رسید را بارگذاری کنید.',
+    gatewayUnavailable: 'درگاه پرداخت پاسخ درستی نداد. چند لحظه بعد دوباره تلاش کنید.',
+    gatewayUnreachable: 'به درگاه پرداخت وصل نشدیم. چند لحظه بعد دوباره تلاش کنید.',
+    alreadyPaid: 'پرداخت این سفارش قبلاً تأیید شده است.',
+    amountTooSmall: (minimum: string) =>
+      `پرداخت اینترنتی برای مبلغ‌های کمتر از ${minimum} ریال ممکن نیست. رسید را بارگذاری کنید.`,
+    currencyNotSupported: 'پرداخت اینترنتی فقط برای سفارش‌های ریالی ممکن است.',
+    /**
+     * Zibal settled a session for an amount that is not what the order costs.
+     * This should be unreachable — we send the amount ourselves — so it reads as
+     * "something is wrong, talk to a person" rather than offering a retry.
+     */
+    amountMismatch: 'مبلغ پرداخت‌شده با مبلغ سفارش نمی‌خواند. با پشتیبانی تماس بگیرید.',
+    sessionNotFound: 'این جلسهٔ پرداخت پیدا نشد.',
+  },
+
+  settings: {
+    missing: 'تنظیمات پرداخت پیدا نشد. با توسعه‌دهنده تماس بگیرید.',
+    noMethodLeft:
+      'دست‌کم یک روش پرداخت باید فعال بماند. پیش از خاموش‌کردن کارت‌به‌کارت، درگاه اینترنتی را کامل تنظیم و فعال کنید.',
+    saved: 'تنظیمات پرداخت ذخیره شد.',
+    /** Shown beside the switch, not as an error: the row saved, the gateway is just not usable yet. */
+    onlineNotReady: 'برای فعال‌شدن پرداخت اینترنتی، کلید درگاه و نشانی بازگشت را پر کنید.',
   },
 
   generic: {

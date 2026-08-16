@@ -57,6 +57,7 @@ export const ModelName = {
   OrderItem: 'OrderItem',
   Payment: 'Payment',
   OrderStatusHistory: 'OrderStatusHistory',
+  PaymentSettings: 'PaymentSettings',
   Expense: 'Expense'
 } as const
 
@@ -161,6 +162,9 @@ export const PaymentScalarFieldEnum = {
   status: 'status',
   receiptPath: 'receiptPath',
   reference: 'reference',
+  gatewayTrackId: 'gatewayTrackId',
+  gatewayRequestedAt: 'gatewayRequestedAt',
+  gatewayCardNumber: 'gatewayCardNumber',
   paidAt: 'paidAt',
   verifiedById: 'verifiedById',
   verifiedAt: 'verifiedAt',
@@ -183,6 +187,24 @@ export const OrderStatusHistoryScalarFieldEnum = {
 } as const
 
 export type OrderStatusHistoryScalarFieldEnum = (typeof OrderStatusHistoryScalarFieldEnum)[keyof typeof OrderStatusHistoryScalarFieldEnum]
+
+
+export const PaymentSettingsScalarFieldEnum = {
+  id: 'id',
+  cardToCardEnabled: 'cardToCardEnabled',
+  cardHolder: 'cardHolder',
+  cardNumber: 'cardNumber',
+  onlineEnabled: 'onlineEnabled',
+  zibalMerchant: 'zibalMerchant',
+  zibalBaseUrl: 'zibalBaseUrl',
+  zibalCallbackUrl: 'zibalCallbackUrl',
+  webBaseUrl: 'webBaseUrl',
+  updatedById: 'updatedById',
+  updatedAt: 'updatedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type PaymentSettingsScalarFieldEnum = (typeof PaymentSettingsScalarFieldEnum)[keyof typeof PaymentSettingsScalarFieldEnum]
 
 
 export const ExpenseScalarFieldEnum = {
