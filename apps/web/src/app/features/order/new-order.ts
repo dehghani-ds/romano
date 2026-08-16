@@ -390,9 +390,17 @@ type FieldName = 'contactName' | 'contactMobile' | 'teamName';
       gap: var(--space-sm);
     }
 
+    /* Mobile-first: mark and body share the first line, the control gets a line
+       of its own. A stepper is 208px of buttons that refuse to shrink, so
+       keeping it beside the text pushed the whole row out of the card on a
+       phone. From 768px there is room for all three side by side. */
     .menu__item {
-      display: flex;
-      align-items: flex-start;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-areas:
+        'mark body'
+        'control control';
+      align-items: start;
       gap: var(--space-md);
       padding: var(--space-md);
       border: 1px solid var(--c-border);
@@ -408,9 +416,9 @@ type FieldName = 'contactName' | 'contactMobile' | 'teamName';
     }
 
     .menu__mark {
+      grid-area: mark;
       display: grid;
       place-items: center;
-      flex: none;
       width: 48px;
       height: 48px;
       border-radius: var(--radius-lg);
@@ -419,7 +427,7 @@ type FieldName = 'contactName' | 'contactMobile' | 'teamName';
     }
 
     .menu__body {
-      flex: 1;
+      grid-area: body;
       min-width: 0;
     }
 
@@ -435,9 +443,17 @@ type FieldName = 'contactName' | 'contactMobile' | 'teamName';
       color: var(--c-primary);
     }
 
+    /* Both controls sit in the same cell, so swapping افزودن for the stepper
+       does not move the rest of the row. */
+    .menu__add,
+    .stepper {
+      grid-area: control;
+      width: 100%;
+    }
+
     .menu__add {
-      flex: none;
-      align-self: center;
+      /* Full width on its own line, so ≥44px tall despite btn--sm. */
+      min-height: 44px;
     }
 
     /* Basket */
@@ -485,6 +501,7 @@ type FieldName = 'contactName' | 'contactMobile' | 'teamName';
     .stepper {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: var(--space-md);
     }
 
@@ -518,7 +535,10 @@ type FieldName = 'contactName' | 'contactMobile' | 'teamName';
     }
 
     .stepper__value {
-      width: 88px;
+      /* Basis, not a fixed width: below 375px it gives ground before the two
+         44px buttons do. */
+      flex: 0 1 88px;
+      min-width: 0;
       height: 56px;
       text-align: center;
       font-size: 1.5rem;
@@ -533,6 +553,19 @@ type FieldName = 'contactName' | 'contactMobile' | 'teamName';
         outline: none;
         border-color: var(--c-primary);
         box-shadow: 0 0 0 3px var(--c-ring-shadow);
+      }
+    }
+
+    @media (min-width: 768px) {
+      .menu__item {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        grid-template-areas: 'mark body control';
+      }
+
+      .menu__add,
+      .stepper {
+        width: auto;
+        align-self: center;
       }
     }
 
